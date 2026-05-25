@@ -10,7 +10,14 @@ import AboutPage        from '../pages/web/AboutPage'
 import ContactPage      from '../pages/web/ContactPage'
 import CheckoutPage     from '../pages/web/CheckoutPage'
 import OrderSuccessPage from '../pages/web/OrderSuccessPage'
-import POSDashboardPage from '../pages/pos/POSDashboardPage'
+import POSDashboardPage    from '../pages/pos/POSDashboardPage'
+import LiveOrdersPage      from '../pages/pos/LiveOrdersPage'
+import FoodsListPage       from '../pages/pos/FoodsListPage'
+import FoodFormPage        from '../pages/pos/FoodFormPage'
+import InvoicesPage        from '../pages/pos/InvoicesPage'
+import SettingsPage        from '../pages/pos/SettingsPage'
+import QuickPOSPage        from '../pages/pos/QuickPOSPage'
+import ReportsPage         from '../pages/pos/ReportsPage'
 
 // Simple fallback shown when a route is not found or throws
 function NotFound() {
@@ -47,9 +54,23 @@ const router = createBrowserRouter([
     path: '/pos',
     element: <POSLayout />,
     children: [
-      { index: true,       element: <Navigate to="dashboard" replace /> },
-      { path: 'dashboard', element: <POSDashboardPage /> },
+      { index: true,            element: <Navigate to="dashboard" replace /> },
+      { path: 'dashboard',      element: <POSDashboardPage /> },
+      { path: 'orders',         element: <LiveOrdersPage /> },
+      { path: 'invoices',       element: <InvoicesPage /> },
+      { path: 'foods',          element: <FoodsListPage /> },
+      { path: 'foods/add',      element: <FoodFormPage /> },
+      { path: 'foods/edit/:id', element: <FoodFormPage /> },
+      { path: 'reports',        element: <ReportsPage /> },
+      { path: 'settings',       element: <SettingsPage /> },
     ],
+  },
+
+  // ── Quick POS Register (full-screen, no POSLayout wrapper) ────────────────
+  {
+    path: '/pos/quick',
+    element: <QuickPOSPage />,
+    errorElement: <div className="p-8 text-center text-gray-500">Something went wrong.</div>,
   },
 ])
 

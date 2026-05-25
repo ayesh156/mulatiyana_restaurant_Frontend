@@ -12,3 +12,9 @@
     display: none;              /* Chrome / Safari / Opera */
   }
 }
+
+/* ── Toast slide-up animation ── */
+@keyframes slideUp {
+  from { opacity: 0; transform: translate(-50%, 16px); }
+  to   { opacity: 1; transform: translate(-50%, 0);    }
+}

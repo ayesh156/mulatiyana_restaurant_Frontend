@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Outlet, Link, NavLink } from 'react-router-dom'
-import { ShoppingCart, UtensilsCrossed, Menu, X, Sun, Moon, Monitor } from 'lucide-react'
+import { ShoppingCart, UtensilsCrossed, Menu, X, Sun, Moon, Monitor, LayoutDashboard } from 'lucide-react'
 import { useTheme } from '../utils/ThemeContext'
 import { useCartStore, selectCartCount } from '../utils/store'
 import SlideCart from '../components/ui/SlideCart'
@@ -136,23 +136,50 @@ function MobileDrawer({ open, onClose }) {
             </NavLink>
           ))}
 
-          {/* Cart row */}
-          <button
-            onClick={() => { onClose(); useCartStore.getState().toggleCart() }}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium
-                       text-gray-600 dark:text-gray-300
-                       hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-amber-600
-                       transition-colors mt-1 border-t border-gray-100 dark:border-gray-800 pt-4"
-          >
-            <ShoppingCart size={16} />
-            Cart
-            {count > 0 && (
-              <span className="ml-auto bg-amber-500 text-white text-[10px]
-                               w-5 h-5 rounded-full flex items-center justify-center font-bold">
-                {count}
+          {/* ── Admin section divider ── */}
+          <div className="pt-3 mt-2 border-t border-gray-100 dark:border-gray-800">
+            <p className="text-[10px] font-bold text-gray-400 dark:text-gray-600
+                          uppercase tracking-widest px-4 mb-1.5">
+              Admin
+            </p>
+
+            {/* POS Admin link */}
+            <Link
+              to="/pos"
+              onClick={onClose}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold
+                         bg-amber-500/10 text-amber-600 dark:text-amber-400
+                         hover:bg-amber-500/20 dark:hover:bg-amber-500/20
+                         transition-colors"
+            >
+              <LayoutDashboard size={16} className="shrink-0" />
+              POS Admin
+              <span className="ml-auto text-[10px] font-bold bg-amber-500 text-white
+                               px-1.5 py-0.5 rounded-md leading-none">
+                ADMIN
               </span>
-            )}
-          </button>
+            </Link>
+          </div>
+
+          {/* ── Cart row ── */}
+          <div className="pt-3 mt-1 border-t border-gray-100 dark:border-gray-800">
+            <button
+              onClick={() => { onClose(); useCartStore.getState().toggleCart() }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium
+                         text-gray-600 dark:text-gray-300
+                         hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-amber-600
+                         transition-colors"
+            >
+              <ShoppingCart size={16} />
+              Cart
+              {count > 0 && (
+                <span className="ml-auto bg-amber-500 text-white text-[10px]
+                                 w-5 h-5 rounded-full flex items-center justify-center font-bold">
+                  {count}
+                </span>
+              )}
+            </button>
+          </div>
         </nav>
 
         {/* Drawer footer */}
@@ -211,6 +238,20 @@ function Navbar() {
 
           {/* Right controls */}
           <div className="flex items-center gap-1">
+            {/* POS Admin link — desktop only, subtle */}
+            <Link
+              to="/pos"
+              aria-label="Go to POS Admin"
+              title="Go to POS Admin"
+              className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg
+                         text-xs font-semibold text-gray-400 dark:text-gray-500
+                         hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-gray-800
+                         border border-gray-200 dark:border-gray-700
+                         transition-colors mr-1"
+            >
+              <LayoutDashboard size={14} />
+              <span>POS</span>
+            </Link>
             <ThemeToggle />
             <CartButton onClose={close} />
             {/* Hamburger — mobile only */}
