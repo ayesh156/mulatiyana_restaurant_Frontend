@@ -136,11 +136,11 @@ function SaveButton({ onSave, saved }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function GeneralTab() {
   const [form, setForm] = useState({
-    name:    'Mulatiyana Restaurant',
+    name:    'Senari Chinese Hotel',
     phone:   '+94 77 123 4567',
-    email:   'hello@mulatiyana.lk',
-    address: '42 Galle Road, Mulatiyana, Southern Province, Sri Lanka',
-    tagline: 'Authentic Sri Lankan Flavours',
+    email:   'hello@senarichinese.lk',
+    address: 'Senari Chinese Hotel, Sri Lanka',
+    tagline: 'Authentic Chinese Cuisine',
   })
   const [saved, setSaved] = useState(false)
 
@@ -156,7 +156,7 @@ function GeneralTab() {
       <Section title="Restaurant Identity" sub="Basic information shown to customers">
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Restaurant Name" value={form.name}    onChange={set('name')}    placeholder="e.g. Mulatiyana Restaurant" />
+            <Field label="Restaurant Name" value={form.name}    onChange={set('name')}    placeholder="e.g. Senari Chinese Hotel" />
             <Field label="Tagline"         value={form.tagline} onChange={set('tagline')} placeholder="e.g. Authentic Sri Lankan Flavours" />
           </div>
           <TextareaField label="Address" value={form.address} onChange={set('address')} placeholder="Full address…" rows={2} />

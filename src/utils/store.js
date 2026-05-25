@@ -63,7 +63,7 @@ export const useCartStore = create(
       clearCart: () => set({ cartItems: [] }),
     }),
     {
-      name: 'mulatiyana-cart',          // localStorage key
+      name: 'senarichinese-cart',          // localStorage key
       partialState: (state) => ({       // only persist cart items, not UI state
         cartItems: state.cartItems,
       }),

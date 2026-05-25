@@ -25,9 +25,9 @@ function HeroSection() {
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] font-extrabold
                          text-gray-900 dark:text-gray-100 leading-tight tracking-tight">
-            Mulatiyana:{' '}
-            <span className="text-amber-500">Authentic Sri Lankan</span>{' '}
-            Flavors, Direct to Your Door
+            Senari Chinese:{' '}
+            <span className="text-amber-500">Authentic Chinese</span>{' '}
+            Cuisine, Direct to Your Table
           </h1>
 
           <p className="mt-4 text-gray-500 dark:text-gray-400 text-sm md:text-base lg:text-lg

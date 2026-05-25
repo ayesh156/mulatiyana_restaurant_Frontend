@@ -47,8 +47,8 @@ function AboutHero() {
           </h1>
           <p className="mt-5 text-gray-500 dark:text-gray-400 text-base md:text-lg
                         max-w-2xl mx-auto leading-relaxed">
-            Nestled in the heart of Mulatiyana, Matara, we've been serving the community
-            with honest, home-style Sri Lankan cooking since the very beginning.
+            Nestled in the heart of Sri Lanka, we've been serving the community
+            with honest, authentic Chinese cuisine since the very beginning.
           </p>
         </AnimatedSection>
       </div>
@@ -82,9 +82,9 @@ function StorySection() {
               A Kitchen Built on Heritage
             </h2>
             <p className="text-gray-500 dark:text-gray-400 leading-relaxed">
-              Mulatiyana Restaurant was born from a simple belief: that the best food
+              Senari Chinese Hotel was born from a simple belief: that the best food
               comes from the best memories. Our founder grew up watching family elders
-              grind fresh spices at dawn, slow-cook curries for hours, and set the table
+              prepare authentic Chinese recipes at dawn, slow-cook broths for hours, and set the table
               with pride. That spirit lives in every dish we serve today.
             </p>
             <p className="text-gray-500 dark:text-gray-400 leading-relaxed">

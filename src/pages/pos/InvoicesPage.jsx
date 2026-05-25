@@ -202,14 +202,14 @@ function InvoiceModal({ order, onClose }) {
               <div className="flex items-center justify-center gap-2 mb-1">
                 <UtensilsCrossed size={20} className="text-amber-500" />
                 <span className="logo text-xl font-extrabold text-amber-600">
-                  Mulatiyana Restaurant
+                  Senari Chinese Hotel
                 </span>
               </div>
               <p className="sub text-xs text-gray-500 dark:text-gray-400">
-                Authentic Sri Lankan Flavours · Pay at Counter
+                Authentic Chinese Cuisine · Pay at Counter
               </p>
               <p className="sub text-xs text-gray-400 dark:text-gray-500 mt-1">
-                42 Galle Road, Mulatiyana, Southern Province
+                Senari Chinese Hotel, Sri Lanka
               </p>
             </div>
 
@@ -287,7 +287,7 @@ function InvoiceModal({ order, onClose }) {
             {/* Footer */}
             <p className="footer text-center text-xs text-gray-400 dark:text-gray-600
                           border-t border-gray-100 dark:border-gray-800 pt-3 mt-4">
-              Thank you for dining with us! · © 2026 Mulatiyana Restaurant
+              Thank you for dining with us! · © 2026 Senari Chinese Hotel
             </p>
           </div>
         </div>

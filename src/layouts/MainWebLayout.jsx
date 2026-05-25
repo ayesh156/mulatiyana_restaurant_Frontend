@@ -103,7 +103,7 @@ function MobileDrawer({ open, onClose }) {
             className="flex items-center gap-2 font-bold text-lg text-amber-600"
           >
             <UtensilsCrossed size={20} />
-            Mulatiyana
+            Senari Chinese
           </Link>
           <button
             onClick={onClose}
@@ -212,8 +212,8 @@ function Navbar() {
             className="flex items-center gap-2 font-bold text-lg sm:text-xl text-amber-600 shrink-0"
           >
             <UtensilsCrossed size={20} />
-            <span className="hidden xs:inline sm:inline">Mulatiyana</span>
-            <span className="xs:hidden sm:hidden text-base">Mulatiyana</span>
+            <span className="hidden xs:inline sm:inline">Senari Chinese</span>
+            <span className="xs:hidden sm:hidden text-base">Senari Chinese</span>
           </Link>
 
           {/* Desktop links */}

@@ -11,7 +11,7 @@ const ThemeContext = createContext(null)
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = 'mulatiyana-theme'
+const STORAGE_KEY = 'senarichinese-theme'
 
 /** Read persisted preference, fall back to 'system' */
 function getStoredTheme() {

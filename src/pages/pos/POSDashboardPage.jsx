@@ -11,6 +11,12 @@ import {
   HOURLY_SALES, CATEGORY_STATS,
   maxHourlyRevenue, totalTodayOrders,
 } from '../../utils/posAnalytics'
+import ModernPagination from '../../components/ui/ModernPagination'
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────────────────────────────────────────
+const ITEMS_PER_PAGE = 8
 
 // ─────────────────────────────────────────────────────────────────────────────
 // STATUS / TYPE CONFIG
@@ -365,7 +371,7 @@ function formatTime(iso) {
 // ─────────────────────────────────────────────────────────────────────────────
 function OrderTable({ orders }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-gray-100 dark:border-gray-800">
+    <div className="overflow-x-auto">
       <table className="w-full text-sm min-w-[640px]">
         <thead>
           <tr className="bg-gray-50 dark:bg-gray-800/60
@@ -430,6 +436,15 @@ export default function POSDashboardPage() {
   const liveOrders = MOCK_ORDERS.filter(o => o.status !== 'COMPLETED')
   const doneOrders = MOCK_ORDERS.filter(o => o.status === 'COMPLETED')
   const prepQueue  = pendingCount + preparingCount
+
+  const [livePage, setLivePage] = useState(1)
+  const [donePage, setDonePage] = useState(1)
+
+  const liveTotalPages = Math.max(1, Math.ceil(liveOrders.length / ITEMS_PER_PAGE))
+  const doneTotalPages = Math.max(1, Math.ceil(doneOrders.length / ITEMS_PER_PAGE))
+
+  const livePageItems = liveOrders.slice((livePage - 1) * ITEMS_PER_PAGE, livePage * ITEMS_PER_PAGE)
+  const donePageItems = doneOrders.slice((donePage - 1) * ITEMS_PER_PAGE, donePage * ITEMS_PER_PAGE)
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto">
@@ -522,19 +537,28 @@ export default function POSDashboardPage() {
           </span>
         </div>
 
-        {liveOrders.length > 0
-          ? <OrderTable orders={liveOrders} />
-          : (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl
-                            border border-gray-100 dark:border-gray-800
-                            p-12 text-center">
-              <TrendingUp size={32} className="mx-auto mb-3 text-gray-300 dark:text-gray-700" />
-              <p className="font-medium text-gray-400 dark:text-gray-500">
-                No active orders right now
-              </p>
-            </div>
-          )
-        }
+        {liveOrders.length > 0 ? (
+          <div className="bg-white dark:bg-gray-900 rounded-2xl
+                          border border-gray-100 dark:border-gray-800 overflow-hidden">
+            <OrderTable orders={livePageItems} />
+            <ModernPagination
+              currentPage={livePage}
+              totalPages={liveTotalPages}
+              totalItems={liveOrders.length}
+              itemsPerPage={ITEMS_PER_PAGE}
+              onPageChange={setLivePage}
+            />
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-gray-900 rounded-2xl
+                          border border-gray-100 dark:border-gray-800
+                          p-12 text-center">
+            <TrendingUp size={32} className="mx-auto mb-3 text-gray-300 dark:text-gray-700" />
+            <p className="font-medium text-gray-400 dark:text-gray-500">
+              No active orders right now
+            </p>
+          </div>
+        )}
       </div>
 
       {/* ── Completed Orders ── */}
@@ -550,7 +574,17 @@ export default function POSDashboardPage() {
               {doneOrders.length} orders
             </span>
           </div>
-          <OrderTable orders={doneOrders} />
+          <div className="bg-white dark:bg-gray-900 rounded-2xl
+                          border border-gray-100 dark:border-gray-800 overflow-hidden">
+            <OrderTable orders={donePageItems} />
+            <ModernPagination
+              currentPage={donePage}
+              totalPages={doneTotalPages}
+              totalItems={doneOrders.length}
+              itemsPerPage={ITEMS_PER_PAGE}
+              onPageChange={setDonePage}
+            />
+          </div>
         </div>
       )}
 

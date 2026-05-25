@@ -201,7 +201,7 @@ function Sidebar({ collapsed, onToggleCollapse, onClose }) {
         {/* User card — icon-only when collapsed */}
         {collapsed ? (
           <div
-            title="Admin — admin@mulatiyana.lk"
+            title="Admin — admin@senarichinese.lk"
             className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center
                        text-white text-xs font-bold shrink-0 cursor-default"
           >
@@ -219,7 +219,7 @@ function Sidebar({ collapsed, onToggleCollapse, onClose }) {
                 Admin
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-500 truncate">
-                admin@mulatiyana.lk
+                admin@senarichinese.lk
               </p>
             </div>
             <button

@@ -251,10 +251,10 @@ function buildReceiptHTML({
 
   <!-- ── HEADER ── -->
   <div class="header">
-    <div class="logo">Mulatiyana</div>
-    <div class="tagline">Authentic Sri Lankan Flavours</div>
+    <div class="logo">SENARI CHINESE HOTEL</div>
+    <div class="tagline">Authentic Chinese Cuisine</div>
     <div class="address">
-      Mulatiyana, Matara District, Sri Lanka<br>
+      Senari Chinese Hotel, Sri Lanka<br>
       Tel: +94 41 234 5678
     </div>
   </div>
@@ -315,7 +315,7 @@ function buildReceiptHTML({
     <div class="thank-you">Thank You!</div>
     <div>Please come again</div>
     <div>Pick-up &amp; Dine-in only · Pay at Counter</div>
-    <div class="website">www.mulatiyana.lk</div>
+    <div class="website">www.senarichinese.lk</div>
   </div>
 
 </div>

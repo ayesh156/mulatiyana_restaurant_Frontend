@@ -1,4 +1,4 @@
-# 🍽️ Mulatiyana Restaurant — Project Workspace
+# 🍽️ Senari Chinese Hotel — Project Workspace
 
 > **Business Logic:** Order Ahead for Pick-up or Dine-in only. No home delivery. Pay at Counter.
 
@@ -120,6 +120,7 @@
 | `QuickPOSPage.jsx` — Phase 2: World-class cart redesign — compact `CartRow` (thumbnail · line total · smart stepper), pill `OrderDetailsStrip` (segmented toggle · rounded inputs · focus rings), `CartPanel` (icon header · scrollable body · dashed totals · amber gradient PAY & PRINT CTA) | May 25, 2026 |
 | `QuickPOSPage.jsx` — Phase 3: Advanced Layout — `OrderModeTabs` (New Order/Ongoing/Online tabs with color-coded active states + `SearchableSelect` customer picker), `CategorySidebar` redesign (emoji icons · amber active pill · left accent bar · hide-scrollbar), `MobileCategoryBar` emoji pills | May 25, 2026 |
 | `QuickPOSPage.jsx` — Phase 4: Grid Pagination — `ITEMS_PER_PAGE=15`, `currentPage` state (resets on category/search change), `paginatedItems` slice, `ModernPagination` pinned below grid (orange→red gradient active page); `discountInputRef` + `customerCashInputRef` wired to cart inputs | May 25, 2026 |
+| `POSDashboardPage.jsx` — Dashboard Table Pagination: `ITEMS_PER_PAGE=8`, `livePage` + `donePage` state, sliced `livePageItems`/`donePageItems`, `ModernPagination` below each table inside shared card wrapper | May 25, 2026 |
 
 ---
 

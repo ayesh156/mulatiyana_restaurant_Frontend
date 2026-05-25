@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MessageCircle, ArrowUp } from 'lucide-react'
 
-const WA_URL = 'https://wa.me/94762801006?text=Hello%20Mulatiyana%20Restaurant!'
+const WA_URL = 'https://wa.me/94762801006?text=Hello%20Senari%20Chinese%20Hotel!'
 const SCROLL_THRESHOLD = 300
 
 // ── Shared button motion variants ─────────────────────────────────────────────

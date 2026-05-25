@@ -154,8 +154,8 @@ export default function ContactPage() {
                             rounded-3xl p-6 flex flex-col gap-5 shadow-sm">
               <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Find Us</h2>
               <ContactDetail icon={Phone} label="Phone" value="+94 41 234 5678" href="tel:+94412345678" />
-              <ContactDetail icon={Mail}  label="Email" value="hello@mulatiyana.lk" href="mailto:hello@mulatiyana.lk" />
-              <ContactDetail icon={MapPin} label="Address" value="Mulatiyana, Matara, Sri Lanka" />
+              <ContactDetail icon={Mail}  label="Email" value="hello@senarichinese.lk" href="mailto:hello@senarichinese.lk" />
+              <ContactDetail icon={MapPin} label="Address" value="Senari Chinese Hotel, Sri Lanka" />
               <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
                 <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">
                   Opening Hours
@@ -174,12 +174,12 @@ export default function ContactPage() {
             {/* Google Map */}
             <div className="rounded-3xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-800">
               <iframe
-                src="https://maps.google.com/maps?q=Mulatiyana,Matara,Sri+Lanka&t=&z=13&ie=UTF8&iwloc=&output=embed"
+                src="https://maps.google.com/maps?q=Senari+Chinese+Hotel,Sri+Lanka&t=&z=13&ie=UTF8&iwloc=&output=embed"
                 className="w-full h-80 border-0"
                 allowFullScreen=""
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
-                title="Mulatiyana Restaurant location on Google Maps"
+                title="Senari Chinese Hotel location on Google Maps"
               />
             </div>
           </div>
