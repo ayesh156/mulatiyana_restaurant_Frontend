@@ -1,25 +1,22 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   ChevronLeft, Save, Tag, DollarSign,
   FileText, ImageIcon, Upload, X, AlertCircle, Loader2,
 } from 'lucide-react'
-import { MENU_ITEMS, CATEGORIES } from '../../utils/menuData'
+import { MENU_ITEMS } from '../../utils/menuData'
 import { FALLBACK_IMAGE_URL } from '../../utils/constants'
+import { useMasterDataStore, buildSelectOptions } from '../../utils/masterDataStore'
 import SearchableSelect from '../../components/ui/SearchableSelect'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
 // ─────────────────────────────────────────────────────────────────────────────
-const CATEGORY_OPTIONS = CATEGORIES
-  .filter(c => c !== 'All')
-  .map(c => ({ label: c, value: c }))
-
 const EMPTY_FORM = {
   name:        '',
   description: '',
   price:       '',
-  category:    CATEGORY_OPTIONS[0]?.value ?? '',
+  category:    '',
   image:       '',
   isNew:       false,
   available:   true,
@@ -275,9 +272,21 @@ export default function FoodFormPage() {
   const { id }    = useParams()
   const isEditing = Boolean(id)
 
+  const foodCategories = useMasterDataStore(s => s.foodCategories)
+  const categoryOptions = useMemo(
+    () => buildSelectOptions(foodCategories),
+    [foodCategories],
+  )
+
   const [form,   setForm]   = useState(EMPTY_FORM)
   const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!isEditing && !form.category && foodCategories[0]) {
+      setForm(f => ({ ...f, category: foodCategories[0] }))
+    }
+  }, [isEditing, foodCategories, form.category])
 
   // Pre-fill when editing
   useEffect(() => {
@@ -417,7 +426,7 @@ export default function FoodFormPage() {
               <div>
                 <FieldLabel required>Category</FieldLabel>
                 <SearchableSelect
-                  options={CATEGORY_OPTIONS}
+                  options={categoryOptions}
                   value={form.category}
                   onChange={val => set('category')(val)}
                   placeholder="Select category…"

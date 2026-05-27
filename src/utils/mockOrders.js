@@ -43,6 +43,40 @@ function makeOrder(id, customerName, customerPhone, orderType, status, paymentSt
 }
 
 // ── Mock Orders (30 total) ────────────────────────────────────────────────────
+export const MOCK_INVENTORY = [
+  { id: 1, name: 'Rice', stock: 150, unit: 'kg', lowStockThreshold: 50 },
+  { id: 2, name: 'Chicken', stock: 75, unit: 'kg', lowStockThreshold: 20 },
+  { id: 3, name: 'Prawns', stock: 30, unit: 'kg', lowStockThreshold: 10 },
+  { id: 4, name: 'Noodles', stock: 200, unit: 'packs', lowStockThreshold: 75 },
+  { id: 5, name: 'Vegetables', stock: 100, unit: 'kg', lowStockThreshold: 30 },
+  { id: 6, name: 'Soy Sauce', stock: 50, unit: 'bottles', lowStockThreshold: 15 },
+  { id: 7, name: 'Chilli Paste', stock: 40, unit: 'jars', lowStockThreshold: 10 },
+  { id: 8, name: 'Soft Drinks', stock: 300, unit: 'bottles', lowStockThreshold: 100 },
+]
+
+export const MOCK_SUPPLIERS = [
+  { id: 1, name: 'Grand Foods Inc.', contact: '0112345678', pendingPayables: 75000, lastOrder: '2023-10-20' },
+  { id: 2, name: 'Lanka Staples Co.', contact: '0119876543', pendingPayables: 0, lastOrder: '2023-11-01' },
+  { id: 3, name: 'Fresh Produce (Pvt) Ltd', contact: '0771231234', pendingPayables: 120000, lastOrder: '2023-10-28' },
+  { id: 4, name: 'Beverage Distributors', contact: '0714567890', pendingPayables: 30000, lastOrder: '2023-10-15' },
+]
+
+// Derived selectors for new KPI cards
+export const lowStockItemsCount = MOCK_INVENTORY.filter(item => item.stock <= item.lowStockThreshold).length
+export const totalPendingSupplierPayables = MOCK_SUPPLIERS.reduce((sum, supplier) => sum + supplier.pendingPayables, 0)
+
+export const MOCK_TABLES = [
+  { id: 1, name: "Table 01", capacity: 4, isOccupied: true,  currentOrder: "ORD-002" },
+  { id: 2, name: "Table 02", capacity: 2, isOccupied: false, currentOrder: null },
+  { id: 3, name: "Table 03", capacity: 6, isOccupied: true,  currentOrder: "ORD-004" },
+  { id: 4, name: "Table 04", capacity: 4, isOccupied: false, currentOrder: null },
+  { id: 5, name: "Table 05", capacity: 2, isOccupied: true,  currentOrder: "ORD-010" },
+  { id: 6, name: "Table 06", capacity: 8, isOccupied: false, currentOrder: null },
+]
+
+export const totalTables = MOCK_TABLES.length
+export const occupiedTables = MOCK_TABLES.filter(table => table.isOccupied).length
+
 export const MOCK_ORDERS = [
   // ── PENDING (9) ──────────────────────────────────────────────────────────
   makeOrder( 1, 'Kamal Perera',       '077 123 4567', 'PICKUP',  'PENDING',   'UNPAID', [{ productId: 1, qty: 2 }, { productId: 7, qty: 1 }], 0,   3),

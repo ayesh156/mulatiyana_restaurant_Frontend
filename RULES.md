@@ -7,11 +7,12 @@ These rules must be followed by every contributor (human or AI) on every change.
 ## 🔴 CRITICAL RULE
 
 > **Before generating or modifying any code for components, pages, or layouts, read this file.**
-> **After any creation or modification, you MUST automatically update:**
-> 1. `WORKSPACE.md` — to track sprint progress (move tasks between To-Do / In Progress / Completed)
-> 2. `ARCHITECTURE.md` — to reflect the updated component tree and project structure
+> **After any significant feature addition or structural change, you MUST automatically update (without the user asking):**
+> 1. `WORKSPACE.md` — sprint progress, completed tasks, and next steps
+> 2. `DATABASE_SCHEMA.md` — current state shapes, stores, and planned/future models
+> 3. `ARCHITECTURE.md` — component tree and project structure when routes or modules change
 >
-> No PR or task is considered complete until both documents are updated.
+> No PR or task is considered complete until these documents reflect the new reality.
 
 ---
 
@@ -39,9 +40,10 @@ These rules must be followed by every contributor (human or AI) on every change.
 2. Read `RULES.md` before writing any code
 3. Build the feature following the rules above
 4. **UI/UX & RESPONSIVENESS AUDIT**: After generating or modifying any component or page, you MUST ensure it is fully mobile-responsive (using Tailwind's `sm/md/lg` prefixes) and free of overlapping UI issues or console errors.
-5. Update `ARCHITECTURE.md` component tree
-6. Move the task to **Completed** in `WORKSPACE.md`
-7. Commit with a clear message: `feat(web): add FoodCard component`
+5. Update `ARCHITECTURE.md` when structure changes
+6. Update `DATABASE_SCHEMA.md` when entities, stores, or data shapes change
+7. Move the task to **Completed** in `WORKSPACE.md`
+8. Commit with a clear message: `feat(web): add FoodCard component`
 
 ---
 

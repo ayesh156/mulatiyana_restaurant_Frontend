@@ -1,6 +1,6 @@
-# 🏗️ Mulatiyana Restaurant — Application Architecture
+# 🏗️ Senari Chinese Hotel — Application Architecture
 
-> **Last updated:** May 25, 2026 — Quick POS Phase 4 Complete: Grid Pagination + Ref Wiring
+> **Last updated:** May 26, 2026 — Enterprise CRM: Customer Management, Reminder History, Table Management
 >
 > **Business Logic:** Order Ahead for Pick-up or Dine-in only. No home delivery. Pay at Counter.
 >
@@ -51,11 +51,16 @@ mulatiyana-restaurant/
 │   │       ├── FoodsListPage.jsx          # ✅ Table, More Options filters (price range + new-only), 8-per-page ModernPagination
 │   │       ├── FoodFormPage.jsx           # ✅ 2-col form, Canvas compression, paste, SearchableSelect
 │   │       ├── QuickPOSPage.jsx           # ✅ Full-screen touch POS: 3-col layout, thermal print, toast, mobile drawer
-│   │       └── SettingsPage.jsx           # ✅ 3-tab: General · Business Hours · System Preferences
+│   │       ├── ReportsPage.jsx            # ✅ KPIs · weekly chart · hourly heatmap · top items · order type split
+│   │       ├── CustomersPage.jsx          # ✅ Enterprise CRM: CRUD, avatar upload+compression, partial payments, reminder system, history modal
+│   │       ├── TableManagementPage.jsx    # ✅ Table grid: available/occupied/reserved, click-to-cycle, grid+list view
+│   │       ├── StaffLoginPage.jsx         # ✅ PIN pad login, staff selector, shake animation, keyboard support
+│   │       └── SettingsPage.jsx           # ✅ 4-tab: General · Business Hours · System Preferences · Messaging
 │   ├── routes/
 │   │   └── index.jsx                      # ✅ All routes registered
-│   └── utils/
-│       ├── constants.js                   # ✅ FALLBACK_IMAGE_URL
+│   ├── utils/
+│   │   ├── authStore.js                   # ✅ Zustand auth (sessionStorage, 3 demo staff, PIN login)
+│   │   ├── constants.js                   # ✅ FALLBACK_IMAGE_URL
 │       ├── menuData.js                    # ✅ MENU_ITEMS[] + CATEGORIES[]
 │       ├── mockOrders.js                  # ✅ 8 mock orders + derived selectors
 │       ├── posAnalytics.js                # ✅ Hourly sales, category stats, weekly revenue
@@ -90,8 +95,28 @@ mulatiyana-restaurant/
 ├── /checkout      → CheckoutPage      ✅
 └── /order-success → OrderSuccessPage  ✅
 
-/pos → POSLayout  (Phase 3)
-└── /pos/dashboard → POSDashboardPage  🔜
+/pos/login → StaffLoginPage  ✅ (public, no auth required)
+  PIN pad: 3 staff cards (Admin/Cashier/Nimal), 4-dot display, shake on wrong PIN,
+  auto-submit on 4th digit, keyboard (0–9, Backspace, Escape, Enter),
+  redirects to intended route via location.state.from after login
+
+/pos → POSLayout  ✅ (ProtectedRoute — redirects to /pos/login if not authenticated)
+│   Sidebar: collapsible w-64↔w-20, theme-aware, live clock in header
+│   Nav: Dashboard · Live Orders · Invoices · Foods · Tables · Customers · Reports · Quick Invoice · Settings
+│   Footer: "View Live Website" Globe · staff name/role/avatar · LogOut button
+│
+├── /pos/dashboard  → POSDashboardPage  ✅
+├── /pos/orders     → LiveOrdersPage    ✅ Kanban (Pending/Preparing/Ready), 8/page
+├── /pos/invoices   → InvoicesPage      ✅ CRUD, thermal receipt preview, navigate to QuickPOS for add/edit
+├── /pos/foods      → FoodsListPage     ✅ Table, filters, 8/page
+├── /pos/foods/add  → FoodFormPage      ✅
+├── /pos/foods/edit/:id → FoodFormPage  ✅
+├── /pos/tables     → TableManagementPage ✅ Grid+list, click-to-cycle status, CRUD
+├── /pos/customers  → CustomersPage     ✅ Enterprise CRM, reminder system, history
+├── /pos/reports    → ReportsPage       ✅ KPIs, charts, heatmap
+└── /pos/settings   → SettingsPage      ✅ 4 tabs
+
+/pos/quick → QuickPOSPage  ✅ (ProtectedRoute, full-screen, no POSLayout wrapper)
 ```
 
 ---
@@ -297,6 +322,12 @@ Theme color:  #F59E0B (amber-500)
 | 23 | `CartPanel` | No feedback during print | Spinner + "Processing…" replaces button text while `isPaying` ✅ |
 | 24 | `QuickPOSPage` | All items rendered at once (no pagination) | `ITEMS_PER_PAGE=15`, `currentPage` state, `paginatedItems` slice, `ModernPagination` pinned below grid ✅ |
 | 24 | `QuickPOSPage` | F8/F9 refs not wired to inputs | `discountInputRef` → discount `<input>`, `customerCashInputRef` → cash `<input>` ✅ |
+| 25 | `POSLayout` + `StaffLoginPage` | Copyright said "NebulaInfinite Software Solutions" | Updated to `© 2026 Senari Chinese Hotel` ✅ |
+| 25 | `QuickPOSPage` | No way to discover F-key shortcuts | F1 → `KeyboardShortcutsModal` (dark gradient, kbd chips, 7 shortcuts); "Shortcuts / F1" button in TopBar ✅ |
+| 28 | `QuickPOSPage` | Tax/service charge not applied | `useSettingsStore` wired: `effectiveTaxRate` + `effectiveServiceRate` shown in CartPanel totals and printed on receipt ✅ |
+| 28 | `QuickPOSPage` | Default order/discount type ignored | `orderType` init from `defaultOrderType`; `discountType` init from `defaultDiscountType` ✅ |
+| 28 | `QuickPOSPage` | No max discount enforcement | `maxDiscountPercent` cap applied in `handlePay`; amber warning in `OrderDetailsStrip` when exceeded ✅ |
+| 28 | `ThermalReceipt` | No tax/service charge lines | Tax + Service Charge rows added to totals block (conditional on amount > 0) ✅ |
 
 ---
 
@@ -319,8 +350,6 @@ Theme color:  #F59E0B (amber-500)
 │   │       (5 categories, colored bars, conic-gradient donut ring)
 │   └── Live Incoming Orders table + Completed Orders table
 │       (status badges: bg-*/10 text-* border border-*/20 pattern)
-│
-├── /pos/orders     → LiveOrdersPage     ✅ Kanban board + filters + pagination
 │   ├── Filter bar: search (order ID / customer name) + SearchableSelect type filter + Clear
 │   ├── useMemo filtered orders with active filter summary line
 │   ├── Pending column   (amber, 9 orders, 2 pages)
@@ -367,9 +396,7 @@ Theme color:  #F59E0B (amber-500)
     ├── Tab rail: horizontal on mobile → vertical on md+
     ├── General tab: Restaurant Identity + Contact Details
     ├── Business Hours tab: per-day toggle + time inputs (dark:[color-scheme:dark])
-    └── System Preferences tab: auto-accept, order sound, dark mode (ThemeContext), compact view, clear cache
-
-/pos/quick → QuickPOSPage  ✅ Full-screen (no POSLayout wrapper)
+    └── System Preferences tab: auto-accept, order sound, dark mode (ThemeContext), compact view, clear cache  ✅ Full-screen (no POSLayout wrapper)
 │   Top-level route — bypasses POSLayout sidebar/header entirely
 │   (Top bar: ChevronLeft "Dashboard" back button + logo + "Quick Invoice" title + mobile cart FAB)
 │
@@ -404,22 +431,25 @@ Theme color:  #F59E0B (amber-500)
     │   └── Empty state: amber icon + "Ticket is empty" copy
     └── Pinned footer (shrink-0 border-t):
         ├── OrderDetailsStrip (always visible):
-        │   ├── Order Type: segmented pill toggle [Dine-in][Takeaway]
+        │   ├── Order Type: segmented pill toggle [Dine-in][Takeaway] — default from `settingsStore.defaultOrderType`
         │   ├── Customer Name input (Takeaway only, uncontrolled ref)
-        │   ├── Discount: [%][Rs.] toggle + number input (F8 badge) — ref: discountInputRef
+        │   ├── Discount: [%][Rs.] toggle + number input (F8 badge) — default type from `settingsStore.defaultDiscountType`
+        │   │   └── Amber cap warning when % > `settingsStore.maxDiscountPercent`
         │   └── Customer Cash input (F9 badge) — ref: customerCashInputRef + live Change/Short-by pill
         │       (emerald when change ≥ 0, red when short)
-        ├── Totals: Subtotal · Discount (emerald) · dashed divider · Grand Total (amber xl)
+        ├── Totals: Subtotal · Discount (emerald) · Tax % (when applyTaxOnReceipt) · Service % (when applyServiceChargeOnReceipt) · dashed divider · Grand Total (amber xl)
         └── PAY & PRINT button (amber gradient, shadow, py-4, F12 badge)
             └── handlePay():
                 1. nextInvoiceNumber() → QR-0001 … (sessionStorage counter)
-                2. Reads orderType, customerName ref, discountAmt, customerCash
-                3. printThermalReceipt(receiptData) → opens 340×600 popup
-                4. Optimistic clear: cart + discount + customerCash + customerName ref
-                5. onafterprint → popup closes, Promise resolves
-                6. showToast('Invoice generated successfully') — 3.2s green toast
-                7. On popup-blocked: restores cart + red error toast
+                2. Reads orderType, customerName ref, discountAmt (capped at maxDiscountPercent)
+                3. Computes taxAmt + serviceAmt from settingsStore rates
+                4. printThermalReceipt(receiptData) → opens 340×600 popup (includes tax/service lines)
+                5. Optimistic clear: cart + discount + customerCash + customerName ref
+                6. onafterprint → popup closes, Promise resolves
+                7. showToast('Invoice generated successfully') — 3.2s green toast
+                8. On popup-blocked: restores cart + red error toast
     Keyboard shortcuts (global, e.preventDefault on all):
+        F1  → toggle KeyboardShortcutsModal (dark gradient header, kbd chips, 7 shortcuts)
         F4  → focus search bar (searchRef)
         F8  → focus Discount input
         F9  → focus Customer Cash input

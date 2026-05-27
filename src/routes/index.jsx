@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 
 import MainWebLayout    from '../layouts/MainWebLayout'
 import POSLayout        from '../layouts/POSLayout'
+import ProtectedRoute   from '../components/ui/ProtectedRoute'
 
 import HomePage         from '../pages/web/HomePage'
 import MenuPage         from '../pages/web/MenuPage'
@@ -18,6 +19,13 @@ import InvoicesPage        from '../pages/pos/InvoicesPage'
 import SettingsPage        from '../pages/pos/SettingsPage'
 import QuickPOSPage        from '../pages/pos/QuickPOSPage'
 import ReportsPage         from '../pages/pos/ReportsPage'
+import CustomersPage       from '../pages/pos/CustomersPage'
+import StaffLoginPage      from '../pages/pos/StaffLoginPage'
+import TableManagementPage from '../pages/pos/TableManagementPage'
+import InventoryPage          from '../pages/pos/InventoryPage'
+import MasterDataPage         from '../pages/pos/MasterDataPage'
+import SuppliersPage          from '../pages/pos/SuppliersPage'
+import PurchaseOrdersPage     from '../pages/pos/PurchaseOrdersPage'
 
 // Simple fallback shown when a route is not found or throws
 function NotFound() {
@@ -52,7 +60,7 @@ const router = createBrowserRouter([
   // ── Admin POS System ──────────────────────────────────────
   {
     path: '/pos',
-    element: <POSLayout />,
+    element: <ProtectedRoute><POSLayout /></ProtectedRoute>,
     children: [
       { index: true,            element: <Navigate to="dashboard" replace /> },
       { path: 'dashboard',      element: <POSDashboardPage /> },
@@ -61,7 +69,13 @@ const router = createBrowserRouter([
       { path: 'foods',          element: <FoodsListPage /> },
       { path: 'foods/add',      element: <FoodFormPage /> },
       { path: 'foods/edit/:id', element: <FoodFormPage /> },
+      { path: 'inventory',      element: <InventoryPage /> },
+      { path: 'master-data',    element: <MasterDataPage /> },
       { path: 'reports',        element: <ReportsPage /> },
+      { path: 'customers',      element: <CustomersPage /> },
+      { path: 'suppliers',      element: <SuppliersPage /> },
+      { path: 'purchase-orders', element: <PurchaseOrdersPage /> },
+      { path: 'tables',         element: <TableManagementPage /> },
       { path: 'settings',       element: <SettingsPage /> },
     ],
   },
@@ -69,8 +83,14 @@ const router = createBrowserRouter([
   // ── Quick POS Register (full-screen, no POSLayout wrapper) ────────────────
   {
     path: '/pos/quick',
-    element: <QuickPOSPage />,
+    element: <ProtectedRoute><QuickPOSPage /></ProtectedRoute>,
     errorElement: <div className="p-8 text-center text-gray-500">Something went wrong.</div>,
+  },
+
+  // ── POS Login (public) ────────────────────────────────────────────────────
+  {
+    path: '/pos/login',
+    element: <StaffLoginPage />,
   },
 ])
 

@@ -1,13 +1,15 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Plus, Search, Pencil, Trash2,
   ChevronUp, ChevronDown, AlertTriangle,
   ImageOff, CheckCircle2, XCircle,
-  Sparkles, X, SlidersHorizontal,
+  Sparkles, X, SlidersHorizontal, Database,
+  List, LayoutGrid,
 } from 'lucide-react'
-import { MENU_ITEMS, CATEGORIES } from '../../utils/menuData'
+import { MENU_ITEMS } from '../../utils/menuData'
 import { FALLBACK_IMAGE_URL } from '../../utils/constants'
+import { useMasterDataStore, buildFoodCategoryFilterOptions } from '../../utils/masterDataStore'
 import SearchableSelect from '../../components/ui/SearchableSelect'
 import ModernPagination from '../../components/ui/ModernPagination'
 
@@ -15,11 +17,6 @@ import ModernPagination from '../../components/ui/ModernPagination'
 // CONSTANTS
 // ─────────────────────────────────────────────────────────────────────────────
 const PAGE_SIZE = 8
-
-const CAT_SELECT_OPTIONS = CATEGORIES.map(c => ({
-  value: c,
-  label: c === 'All' ? 'All Categories' : c,
-}))
 
 const AVAIL_SELECT_OPTIONS = [
   { value: 'all',       label: 'All Status'  },
@@ -155,6 +152,23 @@ export default function FoodsListPage() {
   const [page,                setPage]                = useState(1)
   const [delItem,             setDelItem]             = useState(null)
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
+  const [viewMode,            setViewMode]            = useState('table')
+
+  // ── Auto-switch to grid on mobile (< 768px) ──────────────────────────────
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    const handler = (e) => setViewMode(e.matches ? 'grid' : 'table')
+    if (mq.matches) setViewMode('grid')
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  const foodCategories = useMasterDataStore(s => s.foodCategories)
+
+  const catSelectOptions = useMemo(
+    () => buildFoodCategoryFilterOptions(foodCategories),
+    [foodCategories],
+  )
 
   // ── Derived filtered + sorted list ───────────────────────────────────────
   const filtered = useMemo(() => {
@@ -229,16 +243,32 @@ export default function FoodsListPage() {
             {items.length} items · {availableCount} available
           </p>
         </div>
-        <button
-          onClick={() => navigate('/pos/foods/add')}
-          className="flex items-center justify-center gap-2 px-4 py-2.5
-                     bg-gradient-to-r from-amber-500 to-orange-500
-                     text-white rounded-xl font-medium text-sm
-                     hover:opacity-90 transition-opacity
-                     shadow-md shadow-amber-500/20 shrink-0"
-        >
-          <Plus size={16} /> Add Food
-        </button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => navigate('/pos/master-data')}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
+                       font-medium text-sm border transition-colors shrink-0
+                       bg-white dark:bg-gray-800/50
+                       text-gray-700 dark:text-gray-200
+                       border-gray-200 dark:border-gray-700
+                       hover:border-amber-300 dark:hover:border-amber-700
+                       hover:text-amber-700 dark:hover:text-amber-400"
+          >
+            <Database size={16} /> Master Data
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/pos/foods/add')}
+            className="flex items-center justify-center gap-2 px-4 py-2.5
+                       bg-gradient-to-r from-amber-500 to-orange-500
+                       text-white rounded-xl font-medium text-sm
+                       hover:opacity-90 transition-opacity
+                       shadow-md shadow-amber-500/20 shrink-0"
+          >
+            <Plus size={16} /> Add Food
+          </button>
+        </div>
       </div>
 
       {/* ── Filter bar ── */}
@@ -274,7 +304,7 @@ export default function FoodsListPage() {
 
             {/* Primary filter 1: Category */}
             <SearchableSelect
-              options={CAT_SELECT_OPTIONS}
+              options={catSelectOptions}
               value={catFilter}
               onChange={v => { setCatFilter(v); resetPage() }}
               placeholder="All Categories"
@@ -323,6 +353,20 @@ export default function FoodsListPage() {
                 <X size={12} /> Clear
               </button>
             )}
+
+            {/* View toggle */}
+            <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl shrink-0 ml-auto">
+              {[{ id: 'table', Icon: List }, { id: 'grid', Icon: LayoutGrid }].map(({ id, Icon }) => (
+                <button key={id} onClick={() => setViewMode(id)} aria-label={`${id} view`}
+                  className={`p-2 rounded-lg transition-all duration-150
+                             ${viewMode === id
+                               ? 'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm'
+                               : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                             }`}>
+                  <Icon size={15} />
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* ── Row 2: Advanced filters (animated expand) ── */}
@@ -370,143 +414,166 @@ export default function FoodsListPage() {
         </div>
       </div>
 
-      {/* ── Data table ── */}
+      {/* ── Data table / Card grid ── */}
       <div className="rounded-2xl border overflow-hidden
                       bg-white dark:bg-gray-900
                       border-gray-200 dark:border-gray-800">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[680px]">
-            <thead>
-              <tr className="border-b bg-gray-50 dark:bg-gray-800/60
-                             border-gray-200 dark:border-gray-700/50">
-                <th className="px-4 py-3 text-left text-xs font-semibold
-                               text-gray-500 dark:text-gray-400 w-16">
-                  Image
-                </th>
-                {[
-                  { label: 'Name',     col: 'name'     },
-                  { label: 'Category', col: 'category' },
-                  { label: 'Price',    col: 'price'    },
-                ].map(({ label, col }) => (
-                  <th key={col}
-                    onClick={() => handleSort(col)}
-                    className="px-4 py-3 text-left text-xs font-semibold
-                               text-gray-500 dark:text-gray-400
-                               cursor-pointer hover:text-amber-500
-                               select-none whitespace-nowrap transition-colors">
-                    <span className="inline-flex items-center gap-1">
-                      {label} <SortIcon col={col} />
-                    </span>
-                  </th>
-                ))}
-                <th className="px-4 py-3 text-left text-xs font-semibold
-                               text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold
-                               text-gray-500 dark:text-gray-400 pr-5">
-                  Actions
-                </th>
-              </tr>
-            </thead>
 
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {pageItems.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-14 text-center">
-                    <ImageOff size={28} className="mx-auto mb-2 text-gray-300 dark:text-gray-700" />
-                    <p className="text-sm font-medium text-gray-400 dark:text-gray-600">
-                      No items match your filters
-                    </p>
-                  </td>
+        {viewMode === 'grid' ? (
+          /* ── Card Grid ── */
+          <>
+            {pageItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-3">
+                <ImageOff size={32} className="text-gray-300 dark:text-gray-700" />
+                <p className="text-sm font-medium text-gray-400 dark:text-gray-600">No items match your filters</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
+                {pageItems.map(item => (
+                  <div key={item.id}
+                    className="group flex flex-col rounded-2xl border overflow-hidden
+                               bg-amber-50 dark:bg-gray-800
+                               border-amber-100 dark:border-gray-700
+                               shadow-sm hover:shadow-lg hover:-translate-y-0.5
+                               transition-all duration-200">
+                    {/* Image */}
+                    <div className="relative w-full aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-gray-700">
+                      <img
+                        src={item.image || FALLBACK_IMAGE_URL}
+                        alt={item.name}
+                        onError={e => { e.target.src = FALLBACK_IMAGE_URL }}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      {item.isNew && (
+                        <span className="absolute top-2 left-2 text-[10px] font-bold bg-amber-500 text-white
+                                         px-2 py-0.5 rounded-full uppercase tracking-wide">NEW</span>
+                      )}
+                      <button onClick={() => toggleAvailability(item.id)}
+                        className="absolute top-2 right-2 transition-opacity hover:opacity-80">
+                        <AvailabilityBadge available={item.available} />
+                      </button>
+                    </div>
+                    {/* Body */}
+                    <div className="flex flex-col flex-1 p-3 gap-2">
+                      <p className="font-bold text-gray-900 dark:text-gray-100 text-sm leading-tight line-clamp-2">
+                        {item.name}
+                      </p>
+                      <CategoryPill category={item.category} />
+                      <p className="text-base font-extrabold text-amber-600 dark:text-amber-400 tabular-nums mt-auto">
+                        Rs. {Number(item.price).toLocaleString('en-LK')}
+                      </p>
+                    </div>
+                    {/* Actions */}
+                    <div className="flex border-t border-amber-100 dark:border-gray-700 divide-x divide-amber-100 dark:divide-gray-700">
+                      <button onClick={() => navigate(`/pos/foods/edit/${item.id}`)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold
+                                   text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400
+                                   hover:bg-amber-100/50 dark:hover:bg-amber-500/10 transition-colors">
+                        <Pencil size={13} /> Edit
+                      </button>
+                      <button onClick={() => setDelItem(item)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold
+                                   text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400
+                                   hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+                        <Trash2 size={13} /> Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          /* ── Table View ── */
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[680px]">
+              <thead>
+                <tr className="border-b bg-gray-50 dark:bg-gray-800/60
+                               border-gray-200 dark:border-gray-700/50">
+                  <th className="px-4 py-3 text-left text-xs font-semibold
+                                 text-gray-500 dark:text-gray-400 w-16">Image</th>
+                  {[
+                    { label: 'Name',     col: 'name'     },
+                    { label: 'Category', col: 'category' },
+                    { label: 'Price',    col: 'price'    },
+                  ].map(({ label, col }) => (
+                    <th key={col} onClick={() => handleSort(col)}
+                      className="px-4 py-3 text-left text-xs font-semibold
+                                 text-gray-500 dark:text-gray-400
+                                 cursor-pointer hover:text-amber-500
+                                 select-none whitespace-nowrap transition-colors">
+                      <span className="inline-flex items-center gap-1">
+                        {label} <SortIcon col={col} />
+                      </span>
+                    </th>
+                  ))}
+                  <th className="px-4 py-3 text-left text-xs font-semibold
+                                 text-gray-500 dark:text-gray-400 whitespace-nowrap">Status</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold
+                                 text-gray-500 dark:text-gray-400 pr-5">Actions</th>
                 </tr>
-              ) : (
-                pageItems.map(item => (
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {pageItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-14 text-center">
+                      <ImageOff size={28} className="mx-auto mb-2 text-gray-300 dark:text-gray-700" />
+                      <p className="text-sm font-medium text-gray-400 dark:text-gray-600">No items match your filters</p>
+                    </td>
+                  </tr>
+                ) : pageItems.map(item => (
                   <tr key={item.id}
                     className="transition-all duration-150 bg-white dark:bg-gray-900
                                border-b border-gray-100 dark:border-gray-800
                                hover:bg-amber-50/50 dark:hover:bg-gray-800/30">
-
                     <td className="px-4 py-3">
-                      <div className="w-12 h-10 rounded-xl overflow-hidden shrink-0
-                                      bg-amber-50 dark:bg-gray-800">
-                        <img
-                          src={item.image || FALLBACK_IMAGE_URL}
-                          alt={item.name}
+                      <div className="w-12 h-10 rounded-xl overflow-hidden shrink-0 bg-amber-50 dark:bg-gray-800">
+                        <img src={item.image || FALLBACK_IMAGE_URL} alt={item.name}
                           onError={e => { e.target.src = FALLBACK_IMAGE_URL }}
-                          className="w-full h-full object-cover"
-                        />
+                          className="w-full h-full object-cover" />
                       </div>
                     </td>
-
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold text-gray-900 dark:text-white whitespace-nowrap">
-                          {item.name}
-                        </p>
+                        <p className="font-semibold text-gray-900 dark:text-white whitespace-nowrap">{item.name}</p>
                         {item.isNew && (
-                          <span className="text-[10px] font-bold bg-amber-500 text-white
-                                           px-1.5 py-0.5 rounded-md leading-none">
-                            NEW
-                          </span>
+                          <span className="text-[10px] font-bold bg-amber-500 text-white px-1.5 py-0.5 rounded-md leading-none">NEW</span>
                         )}
                       </div>
                       {item.description && (
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 max-w-xs truncate">
-                          {item.description}
-                        </p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 max-w-xs truncate">{item.description}</p>
                       )}
                     </td>
-
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <CategoryPill category={item.category} />
-                    </td>
-
-                    <td className="px-4 py-3 font-bold tabular-nums whitespace-nowrap
-                                   text-gray-900 dark:text-white">
+                    <td className="px-4 py-3 whitespace-nowrap"><CategoryPill category={item.category} /></td>
+                    <td className="px-4 py-3 font-bold tabular-nums whitespace-nowrap text-gray-900 dark:text-white">
                       Rs. {Number(item.price).toLocaleString('en-LK')}
                     </td>
-
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <button
-                        onClick={() => toggleAvailability(item.id)}
-                        title="Click to toggle"
-                        className="transition-opacity hover:opacity-75"
-                      >
+                      <button onClick={() => toggleAvailability(item.id)} title="Click to toggle"
+                        className="transition-opacity hover:opacity-75">
                         <AvailabilityBadge available={item.available} />
                       </button>
                     </td>
-
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => navigate(`/pos/foods/edit/${item.id}`)}
-                          aria-label={`Edit ${item.name}`}
-                          className="p-2 rounded-xl transition-colors
-                                     text-gray-400 dark:text-gray-500
-                                     hover:text-amber-600 dark:hover:text-amber-400
-                                     hover:bg-amber-50 dark:hover:bg-amber-500/10"
-                        >
+                        <button onClick={() => navigate(`/pos/foods/edit/${item.id}`)} aria-label={`Edit ${item.name}`}
+                          className="p-2 rounded-xl transition-colors text-gray-400 dark:text-gray-500
+                                     hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10">
                           <Pencil size={15} />
                         </button>
-                        <button
-                          onClick={() => setDelItem(item)}
-                          aria-label={`Delete ${item.name}`}
-                          className="p-2 rounded-xl transition-colors
-                                     text-gray-400 dark:text-gray-500
-                                     hover:text-red-600 dark:hover:text-red-400
-                                     hover:bg-red-50 dark:hover:bg-red-500/10"
-                        >
+                        <button onClick={() => setDelItem(item)} aria-label={`Delete ${item.name}`}
+                          className="p-2 rounded-xl transition-colors text-gray-400 dark:text-gray-500
+                                     hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10">
                           <Trash2 size={15} />
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* ── Modern Pagination ── */}
         <ModernPagination
@@ -539,6 +606,7 @@ export default function FoodsListPage() {
           onCancel={() => setDelItem(null)}
         />
       )}
+
     </div>
   )
 }

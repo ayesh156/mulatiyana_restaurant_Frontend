@@ -1,16 +1,17 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Plus, Minus, Trash2, ShoppingCart, X,
   UtensilsCrossed, Printer, CheckCircle2,
   AlertCircle, Tag, Users, Banknote, ChevronLeft,
-  Search, UserCircle2,
+  Search, UserCircle2, Keyboard,
 } from 'lucide-react'
 import SearchableSelect from '../../components/ui/SearchableSelect'
 import ModernPagination from '../../components/ui/ModernPagination'
 import { MENU_ITEMS, CATEGORIES } from '../../utils/menuData'
 import { FALLBACK_IMAGE_URL } from '../../utils/constants'
 import { printThermalReceipt } from '../../components/ui/ThermalReceipt'
+import { useSettingsStore } from '../../utils/settingsStore'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const ITEMS_PER_PAGE = 15
@@ -60,6 +61,108 @@ function Toast({ message, type = 'success', onDone }) {
         : <AlertCircle   size={18} className="shrink-0" />
       }
       <span>{message}</span>
+    </div>
+  )
+}
+
+// ── Keyboard Shortcuts Help Modal ────────────────────────────────────────────
+const SHORTCUTS = [
+  { key: 'F1',  description: 'Show / hide this keyboard shortcuts guide' },
+  { key: 'F4',  description: 'Focus the item search bar'                 },
+  { key: 'F8',  description: 'Focus the discount input'                  },
+  { key: 'F9',  description: 'Focus the customer cash input'             },
+  { key: 'F10', description: 'Toggle order type (Dine-in ↔ Takeaway)'   },
+  { key: 'F11', description: 'Toggle discount type (% ↔ Rs.)'           },
+  { key: 'F12', description: 'Process payment and print receipt'         },
+  { key: 'Esc', description: 'Close this dialog'                         },
+]
+
+function KeyboardShortcutsModal({ onClose }) {
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [onClose])
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Keyboard shortcuts"
+      className="fixed inset-0 z-[110] flex items-center justify-center p-4
+                 bg-black/60 backdrop-blur-sm"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div className="w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden
+                      bg-white dark:bg-gray-900
+                      border border-gray-200 dark:border-gray-700/50">
+
+        {/* Header */}
+        <div className="relative overflow-hidden
+                        bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800
+                        dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+          <div className="absolute -top-6 -right-6 w-24 h-24 bg-white/5 rounded-full blur-2xl pointer-events-none" />
+          <div className="relative flex items-center gap-3 px-5 py-4">
+            <div className="w-10 h-10 bg-white/15 backdrop-blur rounded-xl
+                            flex items-center justify-center shrink-0">
+              <Keyboard size={18} className="text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-base font-bold text-white">Keyboard Shortcuts</h2>
+              <p className="text-white/60 text-xs mt-0.5">Quick Invoice — F-key reference</p>
+            </div>
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="w-8 h-8 rounded-xl bg-white/15 hover:bg-white/25
+                         flex items-center justify-center text-white
+                         transition-colors shrink-0"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        </div>
+
+        {/* Shortcut list */}
+        <div className="p-4 flex flex-col gap-1.5">
+          {SHORTCUTS.map(({ key, description }) => (
+            <div
+              key={key}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl
+                         bg-gray-50 dark:bg-gray-800/60
+                         border border-gray-100 dark:border-gray-700/50"
+            >
+              <kbd className="shrink-0 inline-flex items-center justify-center
+                              min-w-[44px] px-2 py-1 rounded-lg
+                              bg-white dark:bg-gray-700
+                              border border-gray-200 dark:border-gray-600
+                              text-xs font-bold text-gray-700 dark:text-gray-200
+                              shadow-sm font-mono">
+                {key}
+              </kbd>
+              <span className="text-sm text-gray-600 dark:text-gray-300 leading-snug">
+                {description}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="px-4 pb-4">
+          <button
+            onClick={onClose}
+            className="w-full py-2.5 rounded-xl font-semibold text-sm
+                       bg-gray-100 dark:bg-gray-800
+                       hover:bg-gray-200 dark:hover:bg-gray-700
+                       text-gray-700 dark:text-gray-300
+                       border border-gray-200 dark:border-gray-700
+                       transition-colors"
+          >
+            Close (Esc)
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -445,12 +548,16 @@ function OrderDetailsStrip({
   orderType, onOrderType, customerRef,
   discount, discountType, onDiscount, onDiscountType, discountInputRef,
   customerCash, onCustomerCash, customerCashInputRef,
-  total,
+  total, maxDiscountPercent,
 }) {
   const givenCash = parseFloat(customerCash) || 0
   const change    = givenCash - total
   const hasChange = givenCash > 0 && change >= 0
   const isShort   = givenCash > 0 && change < 0
+
+  // Warn when % discount exceeds the configured cap
+  const rawDiscount = parseFloat(discount) || 0
+  const isOverCap   = discountType === '%' && maxDiscountPercent > 0 && rawDiscount > maxDiscountPercent
 
   return (
     <div className="space-y-2.5">
@@ -568,6 +675,12 @@ function OrderDetailsStrip({
                        focus:ring-2 focus:ring-amber-400/20 transition-all"
           />
         </div>
+        {isOverCap && (
+          <p className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-1">
+            <Tag size={9} />
+            Max discount is {maxDiscountPercent}% — will be capped on print
+          </p>
+        )}
       </div>
 
       {/* ── Customer Cash ── */}
@@ -633,6 +746,8 @@ function CartPanel({
   orderType, onOrderType, customerRef,
   discount, discountType, onDiscount, onDiscountType, discountInputRef,
   customerCash, onCustomerCash, customerCashInputRef,
+  ctaLabel,
+  taxRate, serviceCharge, maxDiscountPercent,
 }) {
   const subtotal = cartItems.reduce((s, i) => s + i.price * i.quantity, 0)
   const count    = cartItems.reduce((s, i) => s + i.quantity, 0)
@@ -641,7 +756,10 @@ function CartPanel({
   const discountAmt = discountType === '%'
     ? Math.min(subtotal, Math.round(subtotal * rawDiscount / 100))
     : Math.min(subtotal, rawDiscount)
-  const total = Math.max(0, subtotal - discountAmt)
+  const afterDiscount = subtotal - discountAmt
+  const taxAmt        = taxRate > 0        ? Math.round(afterDiscount * taxRate / 100)        : 0
+  const serviceAmt    = serviceCharge > 0  ? Math.round(afterDiscount * serviceCharge / 100)  : 0
+  const total = Math.max(0, afterDiscount + taxAmt + serviceAmt)
 
   return (
     <aside className="flex flex-col w-full h-full bg-white dark:bg-gray-900
@@ -730,6 +848,7 @@ function CartPanel({
           onCustomerCash={onCustomerCash}
           customerCashInputRef={customerCashInputRef}
           total={total}
+          maxDiscountPercent={maxDiscountPercent}
         />
 
         {/* Totals */}
@@ -754,6 +873,28 @@ function CartPanel({
               </span>
               <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
                 − Rs. {fmt(discountAmt)}
+              </span>
+            </div>
+          )}
+
+          {taxAmt > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-400 dark:text-gray-500">
+                Tax ({taxRate}%)
+              </span>
+              <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 tabular-nums">
+                + Rs. {fmt(taxAmt)}
+              </span>
+            </div>
+          )}
+
+          {serviceAmt > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-400 dark:text-gray-500">
+                Service ({serviceCharge}%)
+              </span>
+              <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 tabular-nums">
+                + Rs. {fmt(serviceAmt)}
               </span>
             </div>
           )}
@@ -799,7 +940,7 @@ function CartPanel({
           ) : (
             <>
               <Printer size={19} />
-              PAY &amp; PRINT
+              {ctaLabel}
               <span className="ml-1 text-[11px] font-bold opacity-70
                                bg-white/20 px-1.5 py-0.5 rounded-md">
                 F12
@@ -818,6 +959,8 @@ function MobileCartDrawer({
   orderType, onOrderType, customerRef,
   discount, discountType, onDiscount, onDiscountType, discountInputRef,
   customerCash, onCustomerCash, customerCashInputRef,
+  ctaLabel,
+  taxRate, serviceCharge, maxDiscountPercent,
 }) {
   // Lock body scroll when open
   useEffect(() => {
@@ -898,6 +1041,10 @@ function MobileCartDrawer({
             customerCash={customerCash}
             onCustomerCash={onCustomerCash}
             customerCashInputRef={customerCashInputRef}
+            ctaLabel={ctaLabel}
+            taxRate={taxRate}
+            serviceCharge={serviceCharge}
+            maxDiscountPercent={maxDiscountPercent}
             onPay={() => { onPay(); onClose() }}
           />
         </div>
@@ -907,7 +1054,7 @@ function MobileCartDrawer({
 }
 
 // ── Top Bar ───────────────────────────────────────────────────────────────────
-function TopBar({ cartCount, onCartOpen, onBack }) {
+function TopBar({ cartCount, onCartOpen, onBack, title, onShowShortcuts }) {
   return (
     <header className="h-14 shrink-0 flex items-center justify-between px-4
                        bg-white dark:bg-gray-900
@@ -932,63 +1079,151 @@ function TopBar({ cartCount, onCartOpen, onBack }) {
           <UtensilsCrossed size={14} className="text-white" />
         </div>
         <span className="font-bold text-gray-900 dark:text-gray-100 text-base">
-          Quick Invoice
+          {title}
         </span>
       </div>
 
-      {/* Mobile cart FAB */}
-      <button
-        onClick={onCartOpen}
-        className="md:hidden relative p-2.5 rounded-xl
-                   bg-amber-500 text-white shadow-md shadow-amber-500/30
-                   active:scale-95 transition-transform"
-        aria-label="Open cart"
-      >
-        <ShoppingCart size={20} />
-        {cartCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full
-                           bg-red-500 text-white text-[10px] font-bold
-                           flex items-center justify-center">
-            {cartCount}
+      <div className="flex items-center gap-2">
+        {/* Keyboard shortcuts hint — desktop only */}
+        <button
+          onClick={onShowShortcuts}
+          aria-label="Keyboard shortcuts (F1)"
+          title="Keyboard shortcuts (F1)"
+          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl
+                     text-gray-400 dark:text-gray-500
+                     hover:text-gray-700 dark:hover:text-gray-200
+                     hover:bg-gray-100 dark:hover:bg-gray-800
+                     transition-colors text-xs font-semibold"
+        >
+          <Keyboard size={15} />
+          <span className="hidden md:inline">Shortcuts</span>
+          <span className="text-[9px] font-bold bg-gray-100 dark:bg-gray-800
+                           text-gray-400 dark:text-gray-600
+                           px-1.5 py-0.5 rounded-md border border-gray-200 dark:border-gray-700">
+            F1
           </span>
-        )}
-      </button>
+        </button>
+
+        {/* Mobile cart FAB */}
+        <button
+          onClick={onCartOpen}
+          className="md:hidden relative p-2.5 rounded-xl
+                     bg-amber-500 text-white shadow-md shadow-amber-500/30
+                     active:scale-95 transition-transform"
+          aria-label="Open cart"
+        >
+          <ShoppingCart size={20} />
+          {cartCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full
+                             bg-red-500 text-white text-[10px] font-bold
+                             flex items-center justify-center">
+              {cartCount}
+            </span>
+          )}
+        </button>
+      </div>
     </header>
   )
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function QuickPOSPage() {
-  const navigate = useNavigate()
+  const navigate   = useNavigate()
+  const location   = useLocation()
+
+  // ── Settings store ────────────────────────────────────────────────────────
+  const {
+    defaultOrderType,
+    defaultDiscountType,
+    maxDiscountPercent,
+    defaultTaxRate,
+    defaultServiceCharge,
+    applyTaxOnReceipt,
+    applyServiceChargeOnReceipt,
+  } = useSettingsStore()
+
+  // Effective tax/service charge rates (0 when disabled in settings)
+  const effectiveTaxRate     = applyTaxOnReceipt        ? (defaultTaxRate        ?? 0) : 0
+  const effectiveServiceRate = applyServiceChargeOnReceipt ? (defaultServiceCharge ?? 0) : 0
+
+  // ── Edit mode — detect order passed via router state ──────────────────────
+  const editOrder  = location.state?.editOrder ?? null
+  const isEditMode = editOrder !== null
+
+  // Derive a stable invoice number for edit mode
+  const editInvoiceNum = isEditMode ? `INV-${String(editOrder.id).padStart(3, '0')}` : null
+
+  // ── Pre-fill helpers ──────────────────────────────────────────────────────
+  function buildInitialCart(order) {
+    // Map mock order items → cart item shape (needs `price` field from MENU_ITEMS)
+    return order.items.map((item) => {
+      const menuItem = MENU_ITEMS.find((m) => m.id === item.productId)
+      return {
+        id       : item.productId,
+        name     : item.name,
+        image    : item.image ?? menuItem?.image ?? '',
+        category : item.category ?? menuItem?.category ?? '',
+        price    : item.unitPrice,
+        quantity : item.quantity,
+      }
+    })
+  }
+
+  function buildInitialDiscount(order) {
+    if (!order.discountAmount || order.discountAmount === 0) return { value: '', type: '%' }
+    // Store as flat Rs. amount — we can't reverse-engineer the original % reliably
+    return { value: String(order.discountAmount), type: 'Rs.' }
+  }
+
+  // ── State — initialised from editOrder when present ──────────────────────
   const [selectedCategory, setSelectedCategory] = useState('All')
-  const [cartItems, setCartItems]               = useState([])
+  const [cartItems, setCartItems]               = useState(
+    isEditMode ? buildInitialCart(editOrder) : []
+  )
   const [mobileCartOpen, setMobileCartOpen]     = useState(false)
   const [isPaying, setIsPaying]                 = useState(false)
   const [toast, setToast]                       = useState(null)
+  const [showShortcuts, setShowShortcuts]       = useState(false)
 
   // ── Order details state ──
-  const [orderType,        setOrderType]        = useState('Dine-in')
-  const [discount,         setDiscount]         = useState('')
-  const [discountType,     setDiscountType]     = useState('%')
+  const [orderType, setOrderType] = useState(
+    isEditMode
+      ? (editOrder.orderType === 'DINE_IN' ? 'Dine-in' : 'Takeaway')
+      : (defaultOrderType ?? 'Dine-in')
+  )
+  const initialDiscount = isEditMode ? buildInitialDiscount(editOrder) : { value: '', type: defaultDiscountType === 'fixed' ? 'Rs.' : '%' }
+  const [discount,         setDiscount]         = useState(initialDiscount.value)
+  const [discountType,     setDiscountType]     = useState(initialDiscount.type)
   const [customerCash,     setCustomerCash]     = useState('')
-  const [selectedCustomer, setSelectedCustomer] = useState('walk-in')  // default: Walk-in
+  const [selectedCustomer, setSelectedCustomer] = useState('walk-in')
   const [searchQuery,      setSearchQuery]      = useState('')
   const [categoryFilter,   setCategoryFilter]   = useState('')
   const [currentPage,      setCurrentPage]      = useState(1)
 
   // Refs for inputs + F-key focus targets
-  const customerRef        = useRef(null)
-  const discountInputRef   = useRef(null)   // F8
-  const customerCashInputRef = useRef(null) // F9
-  const searchRef          = useRef(null)   // F4
+  const customerRef          = useRef(null)
+  const discountInputRef     = useRef(null)   // F8
+  const customerCashInputRef = useRef(null)   // F9
+  const searchRef            = useRef(null)   // F4
+
+  // Pre-fill customer name input after mount (uncontrolled ref)
+  useEffect(() => {
+    if (isEditMode && editOrder.customerName && customerRef.current) {
+      customerRef.current.value = editOrder.customerName
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const showToast    = useCallback((message, type = 'success') => setToast({ message, type }), [])
   const dismissToast = useCallback(() => setToast(null), [])
 
-  // ── F-key keyboard shortcuts (F4 / F8 / F9 / F10 / F11) ──
+  // ── F-key keyboard shortcuts (F1 / F4 / F8 / F9 / F10 / F11) ──
   useEffect(() => {
     const handler = (e) => {
       switch (e.key) {
+        case 'F1':
+          e.preventDefault()
+          setShowShortcuts(prev => !prev)
+          break
         case 'F4':
           e.preventDefault()
           searchRef.current?.focus()
@@ -1008,7 +1243,7 @@ export default function QuickPOSPage() {
         case 'F11':
           e.preventDefault()
           setDiscountType(prev => prev === '%' ? 'Rs.' : '%')
-          setDiscount('')   // clear amount when type flips
+          setDiscount('')
           break
         default:
           break
@@ -1018,18 +1253,16 @@ export default function QuickPOSPage() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
-  // ── Filtered items (category sidebar + search bar + category dropdown) ──
+  // ── Filtered items ──
   const filteredItems = useMemo(() => {
     let items = selectedCategory === 'All'
       ? MENU_ITEMS
       : MENU_ITEMS.filter((i) => i.category === selectedCategory)
 
-    // Category dropdown filter (from search bar) — overrides sidebar if set
     if (categoryFilter) {
       items = MENU_ITEMS.filter((i) => i.category === categoryFilter)
     }
 
-    // Text search
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase()
       items = items.filter((i) =>
@@ -1045,7 +1278,7 @@ export default function QuickPOSPage() {
   useEffect(() => { setCurrentPage(1) }, [selectedCategory, categoryFilter, searchQuery])
 
   // ── Paginated slice ──
-  const totalPages    = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE))
+  const totalPages     = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE))
   const paginatedItems = filteredItems.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE,
@@ -1086,44 +1319,55 @@ export default function QuickPOSPage() {
 
   const cartCount = cartItems.reduce((s, i) => s + i.quantity, 0)
 
-  // ── Pay & Print handler ──
-  // Keep a stable ref so the F12 keydown listener always calls the latest version
+  // ── Pay / Update & Print handler ──
   const handlePayRef = useRef(null)
 
   const handlePay = useCallback(async () => {
     if (cartItems.length === 0 || isPaying) return
     setIsPaying(true)
 
-    const invoiceNumber = nextInvoiceNumber()
-    const subtotal      = cartItems.reduce((s, i) => s + i.price * i.quantity, 0)
-    const rawDiscount   = parseFloat(discount) || 0
-    const discountAmt   = discountType === '%'
-      ? Math.min(subtotal, Math.round(subtotal * rawDiscount / 100))
-      : Math.min(subtotal, rawDiscount)
-    const total         = Math.max(0, subtotal - discountAmt)
+    // In edit mode reuse the original invoice number; otherwise generate a new one
+    const invoiceNumber = isEditMode ? editInvoiceNum : nextInvoiceNumber()
 
-    // Read uncontrolled customer name input
+    const subtotal    = cartItems.reduce((s, i) => s + i.price * i.quantity, 0)
+    const rawDiscount = parseFloat(discount) || 0
+
+    // Apply max discount cap (% mode only)
+    const cappedRaw = discountType === '%'
+      ? Math.min(rawDiscount, maxDiscountPercent ?? 100)
+      : rawDiscount
+
+    const discountAmt = discountType === '%'
+      ? Math.min(subtotal, Math.round(subtotal * cappedRaw / 100))
+      : Math.min(subtotal, cappedRaw)
+
+    const afterDiscount = subtotal - discountAmt
+    const taxAmt        = effectiveTaxRate     > 0 ? Math.round(afterDiscount * effectiveTaxRate     / 100) : 0
+    const serviceAmt    = effectiveServiceRate > 0 ? Math.round(afterDiscount * effectiveServiceRate / 100) : 0
+    const total         = Math.max(0, afterDiscount + taxAmt + serviceAmt)
+
     const customerName = customerRef.current?.value?.trim() ?? ''
 
     const receiptData = {
       invoiceNumber,
       orderType,
-      tableNumber  : '',
-      customerName : orderType === 'Takeaway' ? customerName : '',
-      cashierName  : 'Admin',
-      items        : cartItems.map((i) => ({
+      tableNumber   : '',
+      customerName  : orderType === 'Takeaway' ? customerName : '',
+      cashierName   : 'Admin',
+      items         : cartItems.map((i) => ({
         name  : i.name,
         qty   : i.quantity,
         price : i.price,
       })),
       subtotal,
-      discount : discountAmt,
+      discount      : discountAmt,
+      taxRate       : effectiveTaxRate,
+      serviceCharge : effectiveServiceRate,
       total,
       paymentMethod : 'Cash',
       issuedAt      : new Date(),
     }
 
-    // Snapshot cart before clearing
     const snapshot = [...cartItems]
 
     // Optimistic clear
@@ -1135,17 +1379,24 @@ export default function QuickPOSPage() {
 
     try {
       await printThermalReceipt(receiptData)
-      showToast('Invoice generated successfully', 'success')
+      showToast(
+        isEditMode ? 'Invoice updated successfully' : 'Invoice generated successfully',
+        'success'
+      )
+      // In edit mode navigate back to invoices after a short delay so the toast is visible
+      if (isEditMode) {
+        setTimeout(() => navigate('/pos/invoices'), 1200)
+      }
     } catch (err) {
-      // Popup blocked — restore cart
       setCartItems(snapshot)
       showToast('Popup blocked. Please allow popups and try again.', 'error')
     } finally {
       setIsPaying(false)
     }
-  }, [cartItems, isPaying, discount, discountType, orderType, clearCart, showToast])
+  }, [cartItems, isPaying, discount, discountType, orderType, clearCart, showToast,
+      isEditMode, editInvoiceNum, navigate,
+      effectiveTaxRate, effectiveServiceRate, maxDiscountPercent])
 
-  // Keep ref in sync so F12 always calls the latest handlePay
   handlePayRef.current = handlePay
 
   // Wire F12 to the stable ref (registered once on mount)
@@ -1160,14 +1411,23 @@ export default function QuickPOSPage() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
+  // ── Derived UI labels ──
+  const pageTitle = isEditMode ? `Edit Invoice ${editInvoiceNum}` : 'Quick Invoice'
+  const ctaLabel  = isEditMode ? 'UPDATE & PRINT' : 'PAY & PRINT'
+
   return (
-    // Full-screen, no outer POS layout scroll
     <div className="h-screen w-full overflow-hidden flex flex-col
                     bg-gray-50 dark:bg-gray-950
                     text-gray-900 dark:text-gray-100">
 
       {/* ── Minimal Top Bar ── */}
-      <TopBar cartCount={cartCount} onCartOpen={() => setMobileCartOpen(true)} onBack={() => navigate('/pos')} />
+      <TopBar
+        cartCount={cartCount}
+        onCartOpen={() => setMobileCartOpen(true)}
+        onBack={() => navigate(isEditMode ? '/pos/invoices' : '/pos')}
+        title={pageTitle}
+        onShowShortcuts={() => setShowShortcuts(true)}
+      />
 
       {/* ── Mobile category scroll ── */}
       <MobileCategoryBar selected={selectedCategory} onSelect={setSelectedCategory} />
@@ -1219,6 +1479,20 @@ export default function QuickPOSPage() {
               </div>
             )}
           </div>
+
+          {/* Pagination pinned below grid */}
+          {totalPages > 1 && (
+            <div className="shrink-0 border-t border-gray-200 dark:border-gray-800
+                            bg-white dark:bg-gray-900">
+              <ModernPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredItems.length}
+                itemsPerPage={ITEMS_PER_PAGE}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
         </main>
 
         {/* Right — Persistent Cart (desktop only) */}
@@ -1241,6 +1515,10 @@ export default function QuickPOSPage() {
             customerCash={customerCash}
             onCustomerCash={setCustomerCash}
             customerCashInputRef={customerCashInputRef}
+            ctaLabel={ctaLabel}
+            taxRate={effectiveTaxRate}
+            serviceCharge={effectiveServiceRate}
+            maxDiscountPercent={maxDiscountPercent}
             onPay={handlePay}
           />
         </div>
@@ -1267,6 +1545,10 @@ export default function QuickPOSPage() {
         customerCash={customerCash}
         onCustomerCash={setCustomerCash}
         customerCashInputRef={customerCashInputRef}
+        ctaLabel={ctaLabel}
+        taxRate={effectiveTaxRate}
+        serviceCharge={effectiveServiceRate}
+        maxDiscountPercent={maxDiscountPercent}
         onPay={handlePay}
       />
 
@@ -1277,6 +1559,11 @@ export default function QuickPOSPage() {
           type={toast.type}
           onDone={dismissToast}
         />
+      )}
+
+      {/* ── Keyboard Shortcuts Modal ── */}
+      {showShortcuts && (
+        <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />
       )}
     </div>
   )

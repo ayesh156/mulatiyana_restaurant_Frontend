@@ -1,13 +1,14 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
-  Search, Eye, Printer, X, Plus, Pencil, Trash2, AlertTriangle,
-  CheckCircle2, XCircle, UtensilsCrossed,
-  SlidersHorizontal, ChevronDown,
+  Search, Eye, Printer, X, Plus, Trash2, AlertTriangle,
+  CheckCircle2, XCircle,
+  SlidersHorizontal, ChevronDown, List, LayoutGrid,
 } from 'lucide-react'
 import { MOCK_ORDERS } from '../../utils/mockOrders'
 import SearchableSelect from '../../components/ui/SearchableSelect'
 import ModernPagination from '../../components/ui/ModernPagination'
-import InvoiceFormModal from './InvoiceFormModal'
+import { printThermalReceipt } from '../../components/ui/ThermalReceipt'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -135,173 +136,223 @@ function DeleteModal({ order, onConfirm, onCancel }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// INVOICE PREVIEW MODAL
+// INVOICE PREVIEW MODAL — Thermal Receipt Style
 // ─────────────────────────────────────────────────────────────────────────────
+const DASH  = '─'.repeat(32)
+const DOTTED = '·'.repeat(32)
+
+function fmtMoney(n) {
+  return `Rs. ${Number(n).toLocaleString('en-LK', { minimumFractionDigits: 2 })}`
+}
+
+function ReceiptRow({ label, value, bold, large, accent, neg }) {
+  return (
+    <div className={`flex justify-between items-baseline gap-2
+                     ${large ? 'mt-1 pt-2 border-t-2 border-gray-900 dark:border-gray-100' : ''}`}>
+      <span className={`font-mono text-xs shrink-0
+                        ${large  ? 'text-sm font-black text-gray-900 dark:text-gray-100' :
+                          bold   ? 'font-bold text-gray-700 dark:text-gray-300' :
+                          accent ? 'text-gray-500 dark:text-gray-400' :
+                                   'text-gray-500 dark:text-gray-400'}`}>
+        {label}
+      </span>
+      <span className={`font-mono text-xs tabular-nums text-right
+                        ${large  ? 'text-sm font-black text-gray-900 dark:text-gray-100' :
+                          bold   ? 'font-bold text-gray-700 dark:text-gray-300' :
+                          neg    ? 'text-gray-600 dark:text-gray-400' :
+                                   'text-gray-700 dark:text-gray-300'}`}>
+        {value}
+      </span>
+    </div>
+  )
+}
+
+function Divider({ dotted }) {
+  return (
+    <p className={`font-mono text-[10px] leading-none select-none overflow-hidden
+                   ${dotted ? 'text-gray-400 dark:text-gray-600' : 'text-gray-300 dark:text-gray-700'}`}>
+      {dotted ? DOTTED : DASH}
+    </p>
+  )
+}
+
 function InvoiceModal({ order, onClose }) {
-  const printRef = useRef(null)
   const { date, time } = formatDateTime(order.createdAt)
 
   function handlePrint() {
-    const content = printRef.current?.innerHTML
-    if (!content) return
-    const win = window.open('', '_blank', 'width=700,height=900')
-    win.document.write(`
-      <html><head><title>Invoice ${invNum(order.id)}</title>
-      <style>
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 24px; color: #111; }
-        .header { text-align: center; border-bottom: 2px solid #F59E0B; padding-bottom: 16px; margin-bottom: 16px; }
-        .logo { font-size: 22px; font-weight: 800; color: #D97706; }
-        .sub { font-size: 12px; color: #6B7280; margin-top: 2px; }
-        table { width: 100%; border-collapse: collapse; margin: 12px 0; }
-        th { background: #FEF3C7; padding: 8px 10px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
-        td { padding: 8px 10px; border-bottom: 1px solid #F3F4F6; font-size: 13px; }
-        .totals td { border: none; padding: 4px 10px; }
-        .grand { font-weight: 800; font-size: 15px; color: #D97706; }
-        .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
-        .paid { background: #D1FAE5; color: #065F46; }
-        .unpaid { background: #FEE2E2; color: #991B1B; }
-        .footer { text-align: center; margin-top: 24px; font-size: 11px; color: #9CA3AF; border-top: 1px solid #E5E7EB; padding-top: 12px; }
-      </style></head><body>${content}</body></html>
-    `)
-    win.document.close()
-    win.focus()
-    setTimeout(() => { win.print(); win.close() }, 400)
+    printThermalReceipt({
+      invoiceNumber : invNum(order.id),
+      orderType     : order.orderType === 'DINE_IN' ? 'Dine-in' : 'Pick-up',
+      tableNumber   : order.tableNumber ?? '',
+      customerName  : order.customerName,
+      cashierName   : 'Admin',
+      items         : order.items.map(i => ({
+        name  : i.name,
+        qty   : i.quantity,
+        price : i.unitPrice,
+      })),
+      subtotal      : order.subtotal,
+      discount      : order.discountAmount ?? 0,
+      total         : order.grandTotal,
+      paymentMethod : order.paymentMethod ?? order.paymentStatus,
+      issuedAt      : new Date(order.createdAt),
+    })
   }
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50
                     flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border
-                      border-gray-200 dark:border-gray-700/50
-                      w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-white dark:bg-gray-950 rounded-2xl shadow-2xl
+                      border border-gray-200 dark:border-gray-800
+                      w-full max-w-sm max-h-[92vh] flex flex-col overflow-hidden">
 
-        {/* Modal header */}
-        <div className="flex items-center justify-between px-5 py-4 shrink-0
+        {/* ── Modal chrome header ── */}
+        <div className="flex items-center justify-between px-4 py-3 shrink-0
                         border-b border-gray-100 dark:border-gray-800">
-          <div>
-            <h2 className="font-bold text-gray-900 dark:text-white">
-              Invoice {invNum(order.id)}
-            </h2>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-              {date} · {time}
-            </p>
+          <div className="flex items-center gap-2">
+            <Printer size={15} className="text-amber-500" />
+            <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
+              Receipt Preview
+            </span>
           </div>
           <button onClick={onClose} aria-label="Close"
             className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-white
                        hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
-        {/* Scrollable invoice body */}
-        <div className="flex-1 overflow-y-auto px-5 py-4">
-          <div ref={printRef}>
+        {/* ── Scrollable receipt body ── */}
+        <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 px-4 py-5">
 
-            {/* Receipt header */}
-            <div className="header text-center border-b-2 border-amber-400 pb-4 mb-4">
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <UtensilsCrossed size={20} className="text-amber-500" />
-                <span className="logo text-xl font-extrabold text-amber-600">
-                  Senari Chinese Hotel
-                </span>
-              </div>
-              <p className="sub text-xs text-gray-500 dark:text-gray-400">
-                Authentic Chinese Cuisine · Pay at Counter
+          {/* Receipt paper card */}
+          <div className="bg-white dark:bg-gray-950 rounded-xl shadow-md
+                          border border-gray-100 dark:border-gray-800
+                          px-5 py-5 flex flex-col gap-2
+                          font-mono">
+
+            {/* ── HEADER ── */}
+            <div className="text-center mb-1">
+              <p className="text-base font-black tracking-widest uppercase text-gray-900 dark:text-gray-100">
+                SENARI CHINESE
               </p>
-              <p className="sub text-xs text-gray-400 dark:text-gray-500 mt-1">
-                Senari Chinese Hotel, Sri Lanka
+              <p className="text-base font-black tracking-widest uppercase text-gray-900 dark:text-gray-100">
+                HOTEL
+              </p>
+              <p className="text-[10px] tracking-[3px] uppercase text-gray-500 dark:text-gray-400 mt-0.5">
+                Authentic Chinese Cuisine
+              </p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">
+                Senari Chinese Hotel, Sri Lanka{'\n'}Tel: +94 41 234 5678
               </p>
             </div>
 
-            {/* Invoice meta */}
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mb-4 text-xs">
-              {[
-                ['Invoice',    invNum(order.id)],
-                ['Order',      order.orderNumber],
-                ['Date',       date],
-                ['Time',       time],
-                ['Customer',   order.customerName],
-                ['Phone',      order.customerPhone],
-                ['Order Type', order.orderType === 'DINE_IN' ? 'Dine-in' : 'Pick-up'],
-                ['Payment',    order.paymentStatus],
-              ].map(([label, val]) => (
-                <div key={label} className="flex gap-1">
-                  <span className="text-gray-400 dark:text-gray-500 shrink-0">{label}:</span>
-                  <span className="font-semibold text-gray-800 dark:text-gray-200 truncate">{val}</span>
+            <Divider />
+
+            {/* ── META ── */}
+            <div className="flex flex-col gap-0.5">
+              <ReceiptRow label="Invoice :" value={invNum(order.id)}          bold />
+              <ReceiptRow label="Date    :" value={date}                       />
+              <ReceiptRow label="Time    :" value={time}                       />
+              <ReceiptRow label="Type    :" value={order.orderType === 'DINE_IN' ? 'Dine-in' : 'Pick-up'} />
+              {order.customerName && (
+                <ReceiptRow label="Customer:" value={order.customerName}       />
+              )}
+              {order.customerPhone && (
+                <ReceiptRow label="Phone   :" value={order.customerPhone}      />
+              )}
+              <ReceiptRow label="Cashier :" value="Admin"                      />
+            </div>
+
+            <Divider />
+
+            {/* ── ITEMS HEADER ── */}
+            <p className="text-center text-[10px] font-bold tracking-[3px] uppercase
+                          text-gray-500 dark:text-gray-400">
+              ORDER ITEMS
+            </p>
+
+            <Divider dotted />
+
+            {/* ── ITEM ROWS ── */}
+            <div className="flex flex-col gap-1.5">
+              {order.items.map(item => (
+                <div key={item.id}>
+                  <p className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">
+                    {item.name}
+                  </p>
+                  <div className="flex justify-between text-[11px] text-gray-500 dark:text-gray-400">
+                    <span>{item.quantity} × {fmtMoney(item.unitPrice)}</span>
+                    <span className="tabular-nums">{fmtMoney(item.subtotal)}</span>
+                  </div>
                 </div>
               ))}
             </div>
 
-            {/* Items table */}
-            <table className="w-full text-xs mb-3">
-              <thead>
-                <tr className="bg-amber-50 dark:bg-amber-900/20">
-                  {['Item', 'Qty', 'Unit Price', 'Total'].map(h => (
-                    <th key={h} className="px-3 py-2 text-left font-bold text-gray-600 dark:text-gray-400
-                                           uppercase tracking-wide text-[10px]">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {order.items.map(item => (
-                  <tr key={item.id}>
-                    <td className="px-3 py-2 font-medium text-gray-800 dark:text-gray-200">
-                      {item.name}
-                    </td>
-                    <td className="px-3 py-2 text-gray-600 dark:text-gray-400 tabular-nums">
-                      ×{item.quantity}
-                    </td>
-                    <td className="px-3 py-2 text-gray-600 dark:text-gray-400 tabular-nums">
-                      Rs. {item.unitPrice.toLocaleString('en-LK')}
-                    </td>
-                    <td className="px-3 py-2 font-semibold text-gray-800 dark:text-gray-200 tabular-nums">
-                      Rs. {item.subtotal.toLocaleString('en-LK')}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <Divider dotted />
 
-            {/* Totals */}
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-3 space-y-1.5">
-              <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
-                <span>Subtotal</span>
-                <span className="tabular-nums">Rs. {order.subtotal.toLocaleString('en-LK')}</span>
-              </div>
-              {order.discountAmount > 0 && (
-                <div className="flex justify-between text-xs text-green-600 dark:text-green-400">
-                  <span>Discount</span>
-                  <span className="tabular-nums">− Rs. {order.discountAmount.toLocaleString('en-LK')}</span>
-                </div>
+            {/* ── TOTALS ── */}
+            <div className="flex flex-col gap-0.5">
+              <ReceiptRow label="Subtotal" value={fmtMoney(order.subtotal)} />
+              {(order.discountAmount ?? 0) > 0 && (
+                <ReceiptRow
+                  label="Discount"
+                  value={`- ${fmtMoney(order.discountAmount)}`}
+                  neg
+                />
               )}
-              <div className="flex justify-between text-sm font-extrabold
-                              text-amber-600 dark:text-amber-400 pt-1
-                              border-t border-dashed border-amber-200 dark:border-amber-800">
-                <span>Grand Total</span>
-                <span className="tabular-nums">Rs. {order.grandTotal.toLocaleString('en-LK')}</span>
-              </div>
+              <ReceiptRow
+                label="TOTAL"
+                value={fmtMoney(order.grandTotal)}
+                large
+              />
             </div>
 
-            {/* Footer */}
-            <p className="footer text-center text-xs text-gray-400 dark:text-gray-600
-                          border-t border-gray-100 dark:border-gray-800 pt-3 mt-4">
-              Thank you for dining with us! · © 2026 Senari Chinese Hotel
-            </p>
+            <Divider />
+
+            {/* ── PAYMENT ── */}
+            <div className="flex flex-col gap-0.5">
+              <ReceiptRow
+                label="Payment"
+                value={order.paymentMethod ?? order.paymentStatus}
+                bold
+              />
+              <ReceiptRow
+                label="Status"
+                value={order.paymentStatus === 'PAID' ? '✓ PAID' : 'UNPAID'}
+                bold
+              />
+            </div>
+
+            <Divider />
+
+            {/* ── FOOTER ── */}
+            <div className="text-center mt-1 flex flex-col gap-0.5">
+              <p className="text-xs font-black tracking-widest uppercase text-gray-900 dark:text-gray-100">
+                THANK YOU!
+              </p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400">Please come again</p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500">
+                Pick-up &amp; Dine-in only · Pay at Counter
+              </p>
+              <p className="text-[10px] tracking-widest text-gray-400 dark:text-gray-500 mt-0.5">
+                www.senarichinese.lk
+              </p>
+            </div>
+
           </div>
         </div>
 
-        {/* Action bar */}
-        <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-800 shrink-0 flex gap-3">
+        {/* ── Action bar ── */}
+        <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800 shrink-0 flex gap-2">
           <button
             onClick={handlePrint}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5
                        bg-gradient-to-r from-amber-500 to-orange-500
-                       text-white rounded-xl font-medium text-sm
+                       text-white rounded-xl font-semibold text-sm
                        hover:opacity-90 transition-opacity shadow-md shadow-amber-500/20"
           >
-            <Printer size={15} /> Print Invoice
+            <Printer size={15} /> Print Receipt
           </button>
           <button
             onClick={onClose}
@@ -321,7 +372,9 @@ function InvoiceModal({ order, onClose }) {
 // PAGE
 // ─────────────────────────────────────────────────────────────────────────────
 export default function InvoicesPage() {
-  // Local orders list — starts from mock data, new invoices prepended on save
+  const navigate = useNavigate()
+
+  // Local orders list — starts from mock data
   const [orders,              setOrders]              = useState(MOCK_ORDERS)
   const [search,              setSearch]              = useState('')
   const [dateFilter,          setDateFilter]          = useState('all')
@@ -330,22 +383,17 @@ export default function InvoicesPage() {
   const [page,                setPage]                = useState(1)
   const [activeInvoice,       setActiveInvoice]       = useState(null)
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
-  const [showForm,            setShowForm]            = useState(false)
-  const [editOrder,           setEditOrder]           = useState(null)   // order being edited
-  const [delOrder,            setDelOrder]            = useState(null)   // order pending delete
+  const [delOrder,            setDelOrder]            = useState(null)
+  const [viewMode,            setViewMode]            = useState('table')
 
-  // Next ID = max existing id + 1
-  const nextId = useMemo(() => Math.max(...orders.map(o => o.id)) + 1, [orders])
-
-  // Create — prepend
-  function handleSaveInvoice(newOrder) {
-    setOrders(prev => [newOrder, ...prev])
-  }
-
-  // Update — replace in-place, preserve sort position
-  function handleUpdateInvoice(updated) {
-    setOrders(prev => prev.map(o => o.id === updated.id ? updated : o))
-  }
+  // ── Auto-switch to grid on mobile (< 768px) ──────────────────────────────
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    const handler = (e) => setViewMode(e.matches ? 'grid' : 'table')
+    if (mq.matches) setViewMode('grid')
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   // Delete — remove by id, clamp page
   function handleDeleteInvoice(id) {
@@ -414,9 +462,9 @@ export default function InvoicesPage() {
               Rs. {totalRevenue.toLocaleString('en-LK')}
             </span>
           </div>
-          {/* Add Invoice button */}
+          {/* Add Invoice button — navigates to Quick POS */}
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => navigate('/pos/quick')}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm
                        bg-gradient-to-r from-orange-500 to-red-500 text-white
                        hover:opacity-90 transition-opacity shadow-md shadow-orange-500/20 shrink-0"
@@ -508,6 +556,20 @@ export default function InvoicesPage() {
                 <X size={12} /> Clear
               </button>
             )}
+
+            {/* View toggle */}
+            <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl shrink-0 ml-auto">
+              {[{ id: 'table', Icon: List }, { id: 'grid', Icon: LayoutGrid }].map(({ id, Icon }) => (
+                <button key={id} onClick={() => setViewMode(id)} aria-label={`${id} view`}
+                  className={`p-2 rounded-lg transition-all duration-150
+                             ${viewMode === id
+                               ? 'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm'
+                               : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                             }`}>
+                  <Icon size={15} />
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* ── Row 2: Advanced filters (animated expand) ── */}
@@ -541,133 +603,183 @@ export default function InvoicesPage() {
         </div>
       </div>
 
-      {/* ── Data table ── */}
+      {/* ── Data table / Grid ── */}
       <div className="rounded-2xl border overflow-hidden
                       bg-white dark:bg-gray-900
                       border-gray-200 dark:border-gray-800">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[700px]">
-            <thead>
-              <tr className="border-b bg-gray-50 dark:bg-gray-800/60
-                             border-gray-200 dark:border-gray-700/50">
-                {['Invoice', 'Date & Time', 'Customer', 'Type', 'Total', 'Payment', 'Actions'].map(h => (
-                  <th key={h}
-                    className="px-4 py-3 text-left text-[11px] font-bold
-                               text-gray-400 dark:text-gray-500
-                               uppercase tracking-widest whitespace-nowrap">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {pageItems.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-14 text-center">
-                    <p className="text-sm font-medium text-gray-400 dark:text-gray-600">
-                      No invoices match your filters
-                    </p>
-                  </td>
-                </tr>
-              ) : pageItems.map(order => {
-                const { date, time } = formatDateTime(order.createdAt)
-                return (
-                  <tr key={order.id}
-                    className="bg-white dark:bg-gray-900
-                               hover:bg-amber-50/50 dark:hover:bg-gray-800/30
-                               transition-colors duration-150">
-                    {/* Invoice ID */}
-                    <td className="px-4 py-3">
-                      <p className="font-bold text-amber-500 whitespace-nowrap">
-                        {invNum(order.id)}
-                      </p>
-                      <p className="text-[11px] text-gray-400 dark:text-gray-600">
-                        {order.orderNumber}
-                      </p>
-                    </td>
-                    {/* Date & Time */}
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <p className="text-gray-800 dark:text-gray-200 font-medium">{date}</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500">{time}</p>
-                    </td>
-                    {/* Customer */}
-                    <td className="px-4 py-3">
-                      <p className="font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                        {order.customerName}
-                      </p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500">
-                        {order.customerPhone}
-                      </p>
-                    </td>
-                    {/* Type */}
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full
-                                        text-xs font-medium border
-                                        ${order.orderType === 'DINE_IN'
-                                          ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20'
-                                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700'
-                                        }`}>
-                        {order.orderType === 'DINE_IN' ? 'Dine-in' : 'Pick-up'}
-                      </span>
-                    </td>
-                    {/* Total */}
-                    <td className="px-4 py-3 font-bold tabular-nums whitespace-nowrap
-                                   text-gray-900 dark:text-gray-100">
-                      Rs. {order.grandTotal.toLocaleString('en-LK')}
-                    </td>
-                    {/* Payment */}
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <PaymentBadge status={order.paymentStatus} />
-                    </td>
-                    {/* Actions */}
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        {/* View / Print */}
-                        <button
-                          onClick={() => setActiveInvoice(order)}
-                          aria-label={`View invoice ${invNum(order.id)}`}
-                          title="View / Print"
-                          className="p-2 rounded-xl transition-colors
-                                     text-gray-400 dark:text-gray-500
-                                     hover:text-amber-600 dark:hover:text-amber-400
-                                     hover:bg-amber-50 dark:hover:bg-amber-500/10"
-                        >
-                          <Eye size={15} />
+
+        {viewMode === 'grid' ? (
+          /* ── Card Grid ── */
+          <>
+            {pageItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-3">
+                <p className="text-sm font-medium text-gray-400 dark:text-gray-600">No invoices match your filters</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
+                {pageItems.map(order => {
+                  const { date, time } = formatDateTime(order.createdAt)
+                  return (
+                    <div key={order.id}
+                      className="group flex flex-col rounded-2xl border overflow-hidden
+                                 bg-white dark:bg-gray-900
+                                 border-gray-200 dark:border-gray-800
+                                 shadow-sm hover:shadow-lg hover:-translate-y-0.5
+                                 transition-all duration-200">
+                      {/* Accent strip */}
+                      <div className={`h-1.5 shrink-0 ${order.paymentStatus === 'PAID'
+                        ? 'bg-gradient-to-r from-green-400 to-emerald-500'
+                        : 'bg-gradient-to-r from-red-400 to-rose-500'}`} />
+                      {/* Body */}
+                      <div className="flex flex-col gap-2.5 p-3.5 flex-1">
+                        {/* Invoice ID + type */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-extrabold text-amber-500 text-sm leading-tight">
+                              {invNum(order.id)}
+                            </p>
+                            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                              {order.orderNumber}
+                            </p>
+                          </div>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full
+                                            text-[10px] font-semibold border shrink-0
+                                            ${order.orderType === 'DINE_IN'
+                                              ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20'
+                                              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700'
+                                            }`}>
+                            {order.orderType === 'DINE_IN' ? 'Dine-in' : 'Pick-up'}
+                          </span>
+                        </div>
+                        {/* Customer */}
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                            {order.customerName}
+                          </p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">{order.customerPhone}</p>
+                        </div>
+                        {/* Date + Total */}
+                        <div className="flex items-center justify-between gap-2 mt-auto pt-1">
+                          <div>
+                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">{date}</p>
+                            <p className="text-[10px] text-gray-400 dark:text-gray-500">{time}</p>
+                          </div>
+                          <p className="text-base font-extrabold text-gray-900 dark:text-gray-100 tabular-nums">
+                            Rs. {order.grandTotal.toLocaleString('en-LK')}
+                          </p>
+                        </div>
+                        <PaymentBadge status={order.paymentStatus} />
+                      </div>
+                      {/* Actions */}
+                      <div className="flex border-t border-gray-100 dark:border-gray-800 divide-x divide-gray-100 dark:divide-gray-800">
+                        <button onClick={() => setActiveInvoice(order)}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold
+                                     text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400
+                                     hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors">
+                          <Eye size={13} /> View
                         </button>
-                        {/* Edit */}
-                        <button
-                          onClick={() => setEditOrder(order)}
-                          aria-label={`Edit invoice ${invNum(order.id)}`}
-                          title="Edit"
-                          className="p-2 rounded-xl transition-colors
-                                     text-gray-400 dark:text-gray-500
-                                     hover:text-blue-600 dark:hover:text-blue-400
-                                     hover:bg-blue-50 dark:hover:bg-blue-500/10"
-                        >
-                          <Pencil size={15} />
-                        </button>
-                        {/* Delete */}
-                        <button
-                          onClick={() => setDelOrder(order)}
-                          aria-label={`Delete invoice ${invNum(order.id)}`}
-                          title="Delete"
-                          className="p-2 rounded-xl transition-colors
-                                     text-gray-400 dark:text-gray-500
-                                     hover:text-red-600 dark:hover:text-red-400
-                                     hover:bg-red-50 dark:hover:bg-red-500/10"
-                        >
-                          <Trash2 size={15} />
+                        <button onClick={() => setDelOrder(order)}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold
+                                     text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400
+                                     hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+                          <Trash2 size={13} /> Delete
                         </button>
                       </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </>
+        ) : (
+          /* ── Table View ── */
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[700px]">
+              <thead>
+                <tr className="border-b bg-gray-50 dark:bg-gray-800/60
+                               border-gray-200 dark:border-gray-700/50">
+                  {['Invoice', 'Date & Time', 'Customer', 'Type', 'Total', 'Payment', 'Actions'].map(h => (
+                    <th key={h}
+                      className="px-4 py-3 text-left text-[11px] font-bold
+                                 text-gray-400 dark:text-gray-500
+                                 uppercase tracking-widest whitespace-nowrap">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {pageItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-14 text-center">
+                      <p className="text-sm font-medium text-gray-400 dark:text-gray-600">
+                        No invoices match your filters
+                      </p>
                     </td>
                   </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                ) : pageItems.map(order => {
+                  const { date, time } = formatDateTime(order.createdAt)
+                  return (
+                    <tr key={order.id}
+                      className="bg-white dark:bg-gray-900
+                                 hover:bg-amber-50/50 dark:hover:bg-gray-800/30
+                                 transition-colors duration-150">
+                      <td className="px-4 py-3">
+                        <p className="font-bold text-amber-500 whitespace-nowrap">{invNum(order.id)}</p>
+                        <p className="text-[11px] text-gray-400 dark:text-gray-600">{order.orderNumber}</p>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <p className="text-gray-800 dark:text-gray-200 font-medium">{date}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">{time}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">{order.customerName}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">{order.customerPhone}</p>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
+                                          ${order.orderType === 'DINE_IN'
+                                            ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20'
+                                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700'
+                                          }`}>
+                          {order.orderType === 'DINE_IN' ? 'Dine-in' : 'Pick-up'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 font-bold tabular-nums whitespace-nowrap text-gray-900 dark:text-gray-100">
+                        Rs. {order.grandTotal.toLocaleString('en-LK')}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <PaymentBadge status={order.paymentStatus} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setActiveInvoice(order)}
+                            aria-label={`View invoice ${invNum(order.id)}`}
+                            title="View / Print"
+                            className="p-2 rounded-xl transition-colors text-gray-400 dark:text-gray-500
+                                       hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10">
+                            <Eye size={15} />
+                          </button>
+                          <button
+                            onClick={() => setDelOrder(order)}
+                            aria-label={`Delete invoice ${invNum(order.id)}`}
+                            title="Delete"
+                            className="p-2 rounded-xl transition-colors text-gray-400 dark:text-gray-500
+                                       hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10">
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-        {/* ── Modern Pagination ── */}
+        {/* Pagination */}
         <ModernPagination
           currentPage={safePage}
           totalPages={totalPages}
@@ -675,6 +787,13 @@ export default function InvoicesPage() {
           itemsPerPage={PAGE_SIZE}
           onPageChange={p => setPage(p)}
         />
+        {totalPages <= 1 && (
+          <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800">
+            <p className="text-xs text-gray-400 dark:text-gray-600">
+              {filtered.length} of {orders.length} invoices
+            </p>
+          </div>
+        )}
       </div>
 
       {/* ── Invoice Preview Modal ── */}
@@ -682,25 +801,6 @@ export default function InvoicesPage() {
         <InvoiceModal
           order={activeInvoice}
           onClose={() => setActiveInvoice(null)}
-        />
-      )}
-
-      {/* ── Add Invoice Wizard ── */}
-      {showForm && (
-        <InvoiceFormModal
-          nextId={nextId}
-          onClose={() => setShowForm(false)}
-          onSave={handleSaveInvoice}
-        />
-      )}
-
-      {/* ── Edit Invoice Wizard ── */}
-      {editOrder && (
-        <InvoiceFormModal
-          initialOrder={editOrder}
-          nextId={nextId}
-          onClose={() => setEditOrder(null)}
-          onSave={handleUpdateInvoice}
         />
       )}
 

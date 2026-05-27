@@ -1,22 +1,29 @@
 import { useState, useEffect } from 'react'
-import { Outlet, NavLink, Link } from 'react-router-dom'
+import { Outlet, NavLink, Link, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, ClipboardList, UtensilsCrossed,
   Settings, Menu, X, ChefHat, LogOut, Globe,
   ChevronLeft, ChevronRight, Sun, Moon, Monitor,
-  ReceiptText, Calculator, BarChart2,
+  ReceiptText, Calculator, BarChart2, Users, LayoutGrid, Package, Database, Truck, ShoppingCart,
 } from 'lucide-react'
 import { useTheme } from '../utils/ThemeContext'
+import { useAuthStore } from '../utils/authStore'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
-  { to: '/pos/dashboard', icon: LayoutDashboard, label: 'Dashboard'        },
-  { to: '/pos/orders',    icon: ClipboardList,   label: 'Live Orders'      },
-  { to: '/pos/invoices',  icon: ReceiptText,     label: 'Invoices'         },
-  { to: '/pos/foods',     icon: UtensilsCrossed, label: 'Foods'            },
-  { to: '/pos/reports',   icon: BarChart2,       label: 'Reports'          },
-  { to: '/pos/quick',     icon: Calculator,      label: 'Quick Invoice'   },
-  { to: '/pos/settings',  icon: Settings,        label: 'Settings'         },
+  { to: '/pos/dashboard',        icon: LayoutDashboard, label: 'Dashboard'        },
+  { to: '/pos/quick',            icon: Calculator,      label: 'Quick Invoice'    },
+  { to: '/pos/invoices',         icon: ReceiptText,     label: 'Invoices'         },
+  { to: '/pos/orders',           icon: ClipboardList,   label: 'Live Orders'      },
+  { to: '/pos/foods',            icon: UtensilsCrossed, label: 'Foods'            },
+  { to: '/pos/inventory',        icon: Package,         label: 'Inventory'        },
+  { to: '/pos/master-data',      icon: Database,        label: 'Master Data'      },
+  { to: '/pos/customers',        icon: Users,           label: 'Customers'        },
+  { to: '/pos/suppliers',        icon: Truck,           label: 'Suppliers'        },
+  { to: '/pos/purchase-orders',  icon: ShoppingCart,    label: 'Purchase Orders'  },
+  { to: '/pos/tables',           icon: LayoutGrid,      label: 'Tables'           },
+  { to: '/pos/reports',          icon: BarChart2,       label: 'Reports'          },
+  { to: '/pos/settings',         icon: Settings,        label: 'Settings'         },
 ]
 
 // ── Theme Toggle ──────────────────────────────────────────────────────────────
@@ -98,7 +105,7 @@ function SideNavLink({ to, icon: Icon, label, collapsed, onClick }) {
 }
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
-function Sidebar({ collapsed, onToggleCollapse, onClose }) {
+function Sidebar({ collapsed, onToggleCollapse, onClose, onLogout, staff }) {
   return (
     <div className="flex flex-col h-full">
 
@@ -198,32 +205,41 @@ function Sidebar({ collapsed, onToggleCollapse, onClose }) {
           {!collapsed && <span>View Live Website</span>}
         </Link>
 
+        {/* Copyright — hidden when collapsed */}
+        {!collapsed && (
+          <p className="text-[10px] text-gray-400 dark:text-gray-600 text-center px-3 pb-1 leading-snug">
+            © 2026 Senari Chinese Hotel
+          </p>
+        )}
+
         {/* User card — icon-only when collapsed */}
         {collapsed ? (
           <div
-            title="Admin — admin@senarichinese.lk"
+            title={`${staff?.name ?? 'Admin'} — ${staff?.role ?? ''}`}
             className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center
                        text-white text-xs font-bold shrink-0 cursor-default"
           >
-            A
+            {staff?.avatar ?? 'A'}
           </div>
         ) : (
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl
                           bg-gray-100 dark:bg-gray-800/60">
             <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center
                             text-white text-xs font-bold shrink-0">
-              A
+              {staff?.avatar ?? 'A'}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                Admin
+                {staff?.name ?? 'Admin'}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-500 truncate">
-                admin@senarichinese.lk
+                {staff?.role ?? 'ADMIN'}
               </p>
             </div>
             <button
+              onClick={onLogout}
               aria-label="Log out"
+              title="Log out"
               className="p-1.5 rounded-lg
                          text-gray-400 dark:text-gray-500
                          hover:text-red-500 dark:hover:text-red-400
@@ -241,11 +257,20 @@ function Sidebar({ collapsed, onToggleCollapse, onClose }) {
 
 // ── Layout ────────────────────────────────────────────────────────────────────
 export default function POSLayout() {
-  const [sidebarOpen,      setSidebarOpen]      = useState(false)
+  const navigate   = useNavigate()
+  const logout     = useAuthStore(s => s.logout)
+  const staff      = useAuthStore(s => s.staff)
+
+  const [sidebarOpen,        setSidebarOpen]        = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
 
-  const closeMobile  = () => setSidebarOpen(false)
+  const closeMobile    = () => setSidebarOpen(false)
   const toggleCollapse = () => setIsSidebarCollapsed(v => !v)
+
+  function handleLogout() {
+    logout()
+    navigate('/pos/login', { replace: true })
+  }
 
   // Lock body scroll when mobile sidebar is open
   useEffect(() => {
@@ -291,6 +316,8 @@ export default function POSLayout() {
           collapsed={isSidebarCollapsed}
           onToggleCollapse={toggleCollapse}
           onClose={sidebarOpen ? closeMobile : null}
+          onLogout={handleLogout}
+          staff={staff}
         />
       </aside>
 
@@ -334,12 +361,12 @@ export default function POSLayout() {
                             rounded-xl px-3 py-1.5">
               <div className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center
                               text-white text-[10px] font-bold shrink-0">
-                A
+                {staff?.avatar ?? 'A'}
               </div>
               <span className="text-xs font-semibold
                                text-gray-700 dark:text-gray-300
                                hidden sm:block">
-                Cashier: Admin
+                {staff?.name ?? 'Admin'}
               </span>
             </div>
           </div>

@@ -15,6 +15,8 @@
  *     items         : [{ name, qty, price }],
  *     subtotal      : 2400,
  *     discount      : 0,
+ *     taxRate       : 5,                  // optional — % (e.g. 5 = 5%)
+ *     serviceCharge : 10,                 // optional — % (e.g. 10 = 10%)
  *     total         : 2400,
  *     paymentMethod : 'Cash',
  *   })
@@ -44,6 +46,8 @@ function buildReceiptHTML({
   items,
   subtotal,
   discount,
+  taxRate,
+  serviceCharge,
   total,
   paymentMethod,
   issuedAt,
@@ -74,6 +78,19 @@ function buildReceiptHTML({
   // Discount row (only rendered when discount > 0)
   const discountLine = discount > 0
     ? `<div class="row"><span>Discount</span><span class="neg">- ${fmt(discount)}</span></div>`
+    : ''
+
+  // Tax row (only rendered when taxRate > 0)
+  const afterDiscount = subtotal - (discount || 0)
+  const taxAmt = (taxRate > 0) ? Math.round(afterDiscount * taxRate / 100) : 0
+  const taxLine = taxAmt > 0
+    ? `<div class="row"><span>Tax (${taxRate}%)</span><span>${fmt(taxAmt)}</span></div>`
+    : ''
+
+  // Service charge row (only rendered when serviceCharge > 0)
+  const serviceAmt = (serviceCharge > 0) ? Math.round(afterDiscount * serviceCharge / 100) : 0
+  const serviceLine = serviceAmt > 0
+    ? `<div class="row"><span>Service (${serviceCharge}%)</span><span>${fmt(serviceAmt)}</span></div>`
     : ''
 
   return `<!DOCTYPE html>
@@ -254,8 +271,8 @@ function buildReceiptHTML({
     <div class="logo">SENARI CHINESE HOTEL</div>
     <div class="tagline">Authentic Chinese Cuisine</div>
     <div class="address">
-      Senari Chinese Hotel, Sri Lanka<br>
-      Tel: +94 41 234 5678
+      5H6MCMP, Mulatiyana<br>
+      Tel: +94 76 280 1006
     </div>
   </div>
 
@@ -288,6 +305,8 @@ function buildReceiptHTML({
       <span>${fmt(subtotal)}</span>
     </div>
     ${discountLine}
+    ${taxLine}
+    ${serviceLine}
     <div class="total-row">
       <span>TOTAL</span>
       <span>${fmt(total)}</span>

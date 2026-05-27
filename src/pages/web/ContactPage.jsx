@@ -153,7 +153,7 @@ export default function ContactPage() {
             <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800
                             rounded-3xl p-6 flex flex-col gap-5 shadow-sm">
               <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg">Find Us</h2>
-              <ContactDetail icon={Phone} label="Phone" value="+94 41 234 5678" href="tel:+94412345678" />
+              <ContactDetail icon={Phone} label="Phone" value="+94 76 280 1006" href="tel:+94762801006" />
               <ContactDetail icon={Mail}  label="Email" value="hello@senarichinese.lk" href="mailto:hello@senarichinese.lk" />
               <ContactDetail icon={MapPin} label="Address" value="Senari Chinese Hotel, Sri Lanka" />
               <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
